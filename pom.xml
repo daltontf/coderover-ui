@@ -1,12 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+	<modelVersion>4.0.0</modelVersion> 
 	<groupId>tfd.coderover</groupId>
 	<artifactId>coderover-ui</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>
-		<scala.version>2.7.5</scala.version>
+		<scala.version>2.7.6</scala.version>
 	</properties>
 
 	<repositories>
@@ -99,9 +99,69 @@
 					</execution>
 				</executions>
 				<configuration>
-					<mainClass>tfd.logo.Main</mainClass>
+					<mainClass>tfd.coderover.ui.CodeRoverMain</mainClass>
 				</configuration>
 			</plugin>
+			<!-- plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.2-beta-4</version>
+				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+					<archive>
+						<manifest>
+							<mainClass>tfd.coderover.ui.CodeRoverMain</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>com.pyx4me</groupId>
+				<artifactId>proguard-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>proguard</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<libs>
+						<lib>${java.home}\lib\rt.jar</lib>
+						<lib>.\scala-bug-1572-workaround.jar</lib>
+						<lib>${java.home}\lib\jsse.jar</lib>
+					</libs>
+					<includeDependency>false</includeDependency>
+					<options>
+						<option>-dontnote</option>
+						<option>-dontoptimize</option>
+						<option>-dontobfuscate</option>
+						<option>-dontskipnonpubliclibraryclasses</option>
+						<option>-dontskipnonpubliclibraryclassmembers</option>
+						<option>-allowaccessmodification</option>
+						<option>-keep class tfd.coderover.ui.CodeRoverMain { public
+							static void main(java.lang.String[]); }</option>
+					</options>
+					<maxMemory>768m</maxMemory>
+					<injar>${project.build.finalName}-jar-with-dependencies.jar</injar>
+					<outjar>${project.build.finalName}-small.jar</outjar>
+					<outputDirectory>${project.build.directory}</outputDirectory>
+					<addMavenDescriptor>false</addMavenDescriptor>
+				</configuration>
+			</plugin-->
+
 		</plugins>
 	</build>
 
