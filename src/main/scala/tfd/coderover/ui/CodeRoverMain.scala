@@ -1,6 +1,6 @@
 package tfd.coderover.ui
 
-import javax.swing.{AbstractAction, ImageIcon, JButton, JComponent, JPanel, JFileChooser, JFrame, JOptionPane, JScrollPane, JSplitPane, JTextArea, JToolBar, SwingWorker}
+import javax.swing.{AbstractAction, ImageIcon, JButton, JComponent, JPanel, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JToolBar, SwingWorker}
 import javax.swing.filechooser.{FileNameExtensionFilter}
 import java.awt.{BorderLayout, Color, Dimension, Graphics, Graphics2D}
 import java.awt.event.{ActionEvent}
@@ -12,34 +12,37 @@ import Math._
 import edu.umd.cs.piccolo.{PCanvas, PNode}
 import edu.umd.cs.piccolo.nodes.{PImage, PText}
 
-import _root_.tfd.coderover.{State, LanguageParser, Evaluator}
+import _root_.tfd.coderover.{Environment, Instruction, State, LanguageParser, Evaluator}
 
-class GUIState(x:Int, y:Int, directionIndex:Int, robot:PNode) extends State(x, y, directionIndex) {
-	private val transform = new AffineTransform()
- 
-	transform.translate(x * 50, y * 50)
-	transform.rotate(directionIndex * (java.lang.Math.PI/2), 25, 25)
-	robot.setTransform(transform)
- 
+class GUIEvaluator(robot:PNode, environment:Environment) extends Evaluator(environment) {
+	private var transform:AffineTransform = _
+  
 	private def executeAnimation(duration:Int) {
 		robot.animateToTransform(transform, duration ) 
 		Thread.sleep(duration)
 	}
+ 
+	def syncToState(state:State) {
+		transform = new AffineTransform()
+		transform.translate(state.gridX * 50, state.gridY * 50)
+		transform.rotate(state.directionIndex * (java.lang.Math.PI/2), 25, 25)
+		robot.setTransform(transform)
+	}
 	
-	override def droidMoveForward(distance:Int) = {
-	  super.droidMoveForward(distance)
+	override def moveForward(distance:Int, state:State) = {
+	  super.moveForward(distance, state)
 	  transform.translate(0, -50 * distance)
       executeAnimation(500 * distance)
 	}
  
-	override def droidTurnRight() = {
-	  super.droidTurnRight()
+	override def turnRight(state:State) = {
+	  super.turnRight(state)
 	  transform.rotate(java.lang.Math.PI/2, 25, 25)
 	  executeAnimation(1000)
     }
   
-	override def droidTurnLeft() = {
-	  super.droidTurnLeft()
+	override def turnLeft(state:State) = {
+	  super.turnLeft(state)
 	  transform.rotate(-java.lang.Math.PI/2, 25, 25)
 	  executeAnimation(1000)
 	}
@@ -58,8 +61,9 @@ class MainApplication {
   
 	private val canvas = new PCanvas(); 
 	
-	val layer = canvas.getLayer() 
-    val background = new PImage(makePaintedImage(401,401, { g:Graphics => 
+	private val layer = canvas.getLayer() 
+    
+    private val background = new PImage(makePaintedImage(401,401, { g:Graphics => 
 	    	g.setColor(Color.BLACK)
        	for (i <- 0 to 8) {
        	  g.drawLine(i * 50, 0, i * 50, 399)
@@ -69,16 +73,16 @@ class MainApplication {
     layer.addChild(background)
                                 
     //canvas.setPanEventHandler(null);
-    val robot = new PImage(makePaintedImage(50,50, { g:Graphics => 
+    private val robot = new PImage(makePaintedImage(50,50, { g:Graphics => 
         	g.setColor(Color.RED)
           	g.drawLine(25, 10, 10, 40)
             g.drawLine(10, 40, 40, 40)
             g.drawLine(40, 40, 25, 10)
         }))
-    val currentState = new GUIState(0, 0, 1 , robot)
+    private val currentState = new State(0, 0, 1)
     background.addChild(robot)
     
-    val codeText = new JTextArea();
+    private val codeText = new JTextArea();
     { 	import codeText._
     	setToolTipText("Enter code here")
         //CutCopyPastePopupSupport.enable(codeText)
@@ -94,13 +98,13 @@ class MainApplication {
     
     def icon(s:String) = new ImageIcon(getClass().getClassLoader().getResource(s))
     
-    lazy val newAction = new AbstractAction {
+    private lazy val newAction = new AbstractAction("New") {
 					override def actionPerformed(ae:ActionEvent) {
 						codeText.setText("")
 					}
      }
     
-    lazy val openAction = new AbstractAction {
+    private lazy val openAction = new AbstractAction("Open") {
     				override def actionPerformed(ae:ActionEvent) {
     					val chooser = new JFileChooser
     					chooser.setFileFilter(new FileNameExtensionFilter("Code Rover Files", "coderover"))
@@ -128,7 +132,7 @@ class MainApplication {
     				}
     			}
     
-    lazy val saveAction = new AbstractAction() {
+    private lazy val saveAction = new AbstractAction("Save") {
       		import javax.swing.JOptionPane._
             
     		override def actionPerformed(ae:ActionEvent) {
@@ -157,56 +161,88 @@ class MainApplication {
     	}
     }
     
-    lazy val runAction = new AbstractAction {
+    private lazy val runAction:AbstractAction = new AbstractAction("Run") {
     	  		  
   			override def actionPerformed(ae:ActionEvent) {
-   				new SwingWorker[LanguageParser.ParseResult[List[Instruction]],Unit]() {
+  				runAction.setEnabled(false)
+  				stopAction.setEnabled(true)
+  				consoleText.setText("")
+   				new SwingWorker[Unit,String]() {
    	  					   	  				    
-   					override def doInBackground() = LanguageParser.parse(codeText.getText)
-   	  				  	
-   					override def done() {    	  				  	
-   						val parseResult = get 
-   						consoleText.append(parseResult.toString)
-   						consoleText.append("\n")
+   					override def doInBackground() {
+   						val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
+   						publish(parseResult.toString)
    						if (parseResult.successful) {
-   							new Thread() {
-   									override def run() {
-   										Evaluator.evaluate(parseResult.get, currentState)
-   									}
-   							}.start
+   							currentState.stopped = false
+   							val evaluator = new GUIEvaluator(robot, DefaultEnvironment)
+   							evaluator.syncToState(currentState)
+   							evaluator.evaluate(parseResult.get, currentState)
+   						}   					
+   					}
+        
+   					override def process(strings:java.util.List[String]) {
+   						 import  scala.collection.jcl.Conversions._ 
+   						 strings.map { string =>
+   							consoleText.append(string)
+   							consoleText.append("\n")
    						}
+   					} 
+        
+   					override def done() {
+   						runAction.setEnabled(true)
+   						stopAction.setEnabled(false)
    					}
    	  			}.execute    	  		  
    	  		}
-     }    
+     } 
+    
+    private lazy val stopAction = new AbstractAction("Stop") {
+    	setEnabled(false)
+      
+    	override def actionPerformed(ae:ActionEvent) {
+    		currentState.stopped = true
+    	}
+    }
 
-	val frame = new JFrame("Code Rover")
- 	val contentPane = frame.getContentPane
-	val toolBar = new JToolBar
-    toolBar.setFloatable(false)
+	private val frame = new JFrame("Code Rover")
+ 	private val menuBar = new JMenuBar;
+    val menu = new JMenu("File"); { 
+        import menu._
+        add(new JMenuItem(newAction))
+        add(new JMenuItem(openAction))
+        add(new JMenuItem(saveAction))
+    }
+    menuBar.add(menu)   
+    frame.setJMenuBar(menuBar)
  
-    { 
+	private val contentPane = frame.getContentPane
+	private val toolBar = new JToolBar; { 
       import toolBar._
       
+      setFloatable(false)
+      
       def createButtonForAction(action:AbstractAction, iconFile:String, toolTipText:String) = {
-    	  val btn = new JButton(action)
-    	  	btn.setIcon(icon(iconFile))
-      		btn.setToolTipText(toolTipText)
-      		btn
+    	  val btn = new JButton(action); { import btn._
+              setText("")
+    		  setIcon(icon(iconFile))
+    	  	  setToolTipText(toolTipText)
+          }
+    	  btn
       }
-		add(createButtonForAction(newAction, "./new.png", "Start new Code Rover program"))
-    	add(createButtonForAction(openAction, "./open.png", "Open existing .coderover file"))
-    	add(createButtonForAction(saveAction, "./save.png", "Save current Code Rover code to file"))
-    	add(createButtonForAction(runAction, "./go.png", "Run Code Rover"))
+//		add(createButtonForAction(newAction, "new.png", "Start new Code Rover program"))
+//    	add(createButtonForAction(openAction, "open.png", "Open existing .coderover file"))
+//    	add(createButtonForAction(saveAction, "save.png", "Save current Code Rover code to file"))
+    	add(createButtonForAction(runAction, "go.png", "Run Code Rover"))
+    	add(createButtonForAction(stopAction, "stop.png", "Stopping Running Program"))
     }
     
-    val codeCanvasPane = new JSplitPane(
+    private val codeCanvasPane = new JSplitPane(
     		JSplitPane.HORIZONTAL_SPLIT,
     		new JScrollPane(codeText),
     		new JScrollPane(canvas)
     )
     codeCanvasPane.setDividerLocation(350)
-    codeCanvasPane.setPreferredSize(new Dimension(720, 350))
+    codeCanvasPane.setPreferredSize(new Dimension(780, 410))
     contentPane.add(toolBar, BorderLayout.NORTH) 
     contentPane.add(new JSplitPane(
     	JSplitPane.VERTICAL_SPLIT,

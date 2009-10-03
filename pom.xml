@@ -102,10 +102,10 @@
 					<mainClass>tfd.coderover.ui.CodeRoverMain</mainClass>
 				</configuration>
 			</plugin>
-			<!-- plugin>
+			<plugin> <!-- uncomment once fix for http://lampsvn.epfl.ch/trac/scala/ticket/1572 is in Scala versions -->
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
-				<version>2.2-beta-4</version>
+				<version>2.1</version>
 				<configuration>
 					<descriptorRefs>
 						<descriptorRef>jar-with-dependencies</descriptorRef>
@@ -140,15 +140,15 @@
 				<configuration>
 					<libs>
 						<lib>${java.home}\lib\rt.jar</lib>
-						<lib>.\scala-bug-1572-workaround.jar</lib>
 						<lib>${java.home}\lib\jsse.jar</lib>
 					</libs>
 					<includeDependency>false</includeDependency>
 					<options>
 						<option>-dontnote</option>
+						<option>-dontwarn</option>
 						<option>-dontoptimize</option>
 						<option>-dontobfuscate</option>
-						<option>-dontskipnonpubliclibraryclasses</option>
+						<!-- option>-dontskipnonpubliclibraryclasses</option-->
 						<option>-dontskipnonpubliclibraryclassmembers</option>
 						<option>-allowaccessmodification</option>
 						<option>-keep class tfd.coderover.ui.CodeRoverMain { public
@@ -160,8 +160,7 @@
 					<outputDirectory>${project.build.directory}</outputDirectory>
 					<addMavenDescriptor>false</addMavenDescriptor>
 				</configuration>
-			</plugin-->
-
+			</plugin>
 		</plugins>
 	</build>
 
