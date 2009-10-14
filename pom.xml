@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion> 
+	<modelVersion>4.0.0</modelVersion>
 	<groupId>tfd.coderover</groupId>
 	<artifactId>coderover-ui</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
@@ -14,6 +14,11 @@
 			<id>scala-tools.org</id>
 			<name>Scala-Tools Maven2 Repository</name>
 			<url>http://scala-tools.org/repo-releases</url>
+		</repository>
+		<repository>
+			<id>googlecode</id>
+			<name>daltontf-maven</name>
+			<url>http://daltontf-maven.googlecode.com/svn/repo</url>
 		</repository>
 	</repositories>
 
@@ -39,6 +44,11 @@
 		<dependency>
 			<groupId>tfd.coderover</groupId>
 			<artifactId>coderover</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>tfd.gui.swing</groupId>
+			<artifactId>cut-copy-paste-popup</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
@@ -102,7 +112,7 @@
 					<mainClass>tfd.coderover.ui.CodeRoverMain</mainClass>
 				</configuration>
 			</plugin>
-			<plugin> <!-- uncomment once fix for http://lampsvn.epfl.ch/trac/scala/ticket/1572 is in Scala versions -->
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<version>2.1</version>
@@ -152,7 +162,8 @@
 						<option>-dontskipnonpubliclibraryclassmembers</option>
 						<option>-allowaccessmodification</option>
 						<option>-keep class tfd.coderover.ui.CodeRoverMain { public
-							static void main(java.lang.String[]); }</option>
+							static
+							void main(java.lang.String[]); }</option>
 					</options>
 					<maxMemory>768m</maxMemory>
 					<injar>${project.build.finalName}-jar-with-dependencies.jar</injar>

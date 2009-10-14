@@ -1,18 +1,20 @@
 package tfd.coderover.ui
 
-import javax.swing.{AbstractAction, ImageIcon, JButton, JComponent, JPanel, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JToolBar, SwingWorker}
+import javax.swing.{AbstractAction, Action, ImageIcon, JButton, JComponent, JPanel, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JToolBar, SwingWorker}
 import javax.swing.filechooser.{FileNameExtensionFilter}
 import java.awt.{BorderLayout, Color, Dimension, Graphics, Graphics2D}
 import java.awt.event.{ActionEvent}
 import java.awt.geom.AffineTransform
 import java.awt.image.{BufferedImage}
 import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter}
-import Math._
 
 import edu.umd.cs.piccolo.{PCanvas, PNode}
 import edu.umd.cs.piccolo.nodes.{PImage, PText}
 
 import _root_.tfd.coderover.{Environment, Instruction, State, LanguageParser, Evaluator}
+import _root_.tfd.gui.swing.CutCopyPastePopupSupport
+
+import Math._
 
 class GUIEvaluator(robot:PNode, environment:Environment) extends Evaluator(environment) {
 	private var transform:AffineTransform = _
@@ -29,10 +31,10 @@ class GUIEvaluator(robot:PNode, environment:Environment) extends Evaluator(envir
 		robot.setTransform(transform)
 	}
 	
-	override def moveForward(distance:Int, state:State) = {
-	  super.moveForward(distance, state)
-	  transform.translate(0, -50 * distance)
-      executeAnimation(500 * distance)
+	override def moveForward(state:State) = {
+	  super.moveForward(state)
+	  transform.translate(0, -50)
+      executeAnimation(500)
 	}
  
 	override def turnRight(state:State) = {
@@ -85,21 +87,28 @@ class MainApplication {
     private val codeText = new JTextArea();
     { 	import codeText._
     	setToolTipText("Enter code here")
-        //CutCopyPastePopupSupport.enable(codeText)
+        CutCopyPastePopupSupport.enable(codeText)
     }
     
-    val consoleText = new JTextArea();
+    private val consoleText = new JTextArea();
     {   import consoleText._
     	setPreferredSize(new Dimension(700, 120))
     	setEditable(false)
+        setLineWrap(true)
     	setToolTipText("Console for Logo Parser")
-    	//CutCopyPastePopupSupport.enable(consoleText)
-    }
+    	CutCopyPastePopupSupport.enable(consoleText)
+    }    
+    
+    private val boundedEnvironment = new BoundedEnvironment(7,7)    
+    
+    private val evaluator = new GUIEvaluator(robot, boundedEnvironment)
+   	evaluator.syncToState(currentState)
     
     def icon(s:String) = new ImageIcon(getClass().getClassLoader().getResource(s))
     
     private lazy val newAction = new AbstractAction("New") {
 					override def actionPerformed(ae:ActionEvent) {
+						currentState.stopped = true
 						codeText.setText("")
 					}
      }
@@ -111,6 +120,7 @@ class MainApplication {
     					if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
     						val file = chooser.getSelectedFile
     						if (file.exists) {
+    							currentState.stopped = true
     							new SwingWorker[StringBuffer,Unit]() {
     								override def doInBackground():StringBuffer = {
     										val reader = new BufferedReader(new FileReader(file))
@@ -149,7 +159,7 @@ class MainApplication {
     					JOptionPane.showConfirmDialog(frame, "File Exists", "Existing file will be overwritten", OK_CANCEL_OPTION) != OK_OPTION) {
     					return
     				}
-  					new SwingWorker[Unit,Unit]() {
+    				new SwingWorker[Unit,Unit]() {
   						override def doInBackground() {
   							val writer = new BufferedWriter(new FileWriter(file))
    	 								val text = codeText.getText
@@ -174,8 +184,6 @@ class MainApplication {
    						publish(parseResult.toString)
    						if (parseResult.successful) {
    							currentState.stopped = false
-   							val evaluator = new GUIEvaluator(robot, DefaultEnvironment)
-   							evaluator.syncToState(currentState)
    							evaluator.evaluate(parseResult.get, currentState)
    						}   					
    					}
@@ -206,11 +214,20 @@ class MainApplication {
 
 	private val frame = new JFrame("Code Rover")
  	private val menuBar = new JMenuBar;
-    val menu = new JMenu("File"); { 
+    private val menu = new JMenu("File"); { 
         import menu._
-        add(new JMenuItem(newAction))
-        add(new JMenuItem(openAction))
-        add(new JMenuItem(saveAction))
+        
+        setMnemonic('F')
+        
+        def menuItem(action:Action, mnemonic:Char) = {
+          val mi = new JMenuItem(action)
+          mi.setMnemonic(mnemonic)
+          mi
+        }
+        
+        add(menuItem(newAction, 'N'))
+        add(menuItem(openAction, 'O'))
+        add(menuItem(saveAction, 'S'))
     }
     menuBar.add(menu)   
     frame.setJMenuBar(menuBar)
@@ -261,5 +278,4 @@ object CodeRoverMain {
 		 new MainApplication
 
   	}
-
 }
