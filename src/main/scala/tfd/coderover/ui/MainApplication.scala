@@ -243,3 +243,10 @@ class MainApplication {
     frame.setVisible(true)
 }
 
+object Main {
+	def main(args:Array[String]) {
+		 new MainApplication
+
+  	}
+}
+
