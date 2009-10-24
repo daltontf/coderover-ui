@@ -15,9 +15,6 @@ import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 
 import Math._
 
-
-object Rover 
-
 class MainApplication {
 	def makePaintedImage(width:Int, height:Int, painter:Graphics => Unit) = {
 		val image = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
@@ -64,7 +61,7 @@ class MainApplication {
     	setPreferredSize(new Dimension(700, 120))
     	setEditable(false)
         setLineWrap(true)
-    	setToolTipText("Console for Logo Parser")
+    	setToolTipText("Console messages")
         setFont(codeFont)
     	CutCopyPastePopupSupport.enable(consoleText)
     }    
@@ -221,7 +218,7 @@ class MainApplication {
 //    	add(createButtonForAction(openAction, "open.png", "Open existing .coderover file"))
 //    	add(createButtonForAction(saveAction, "save.png", "Save current Code Rover code to file"))
     	add(createButtonForAction(runAction, "go.png", "Run Code Rover"))
-    	add(createButtonForAction(stopAction, "stop.png", "Stopping Running Program"))
+    	add(createButtonForAction(stopAction, "stop.png", "Stop Running Program"))
     }
     
     private val codeCanvasPane = new JSplitPane(
