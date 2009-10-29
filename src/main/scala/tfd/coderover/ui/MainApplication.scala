@@ -1,6 +1,6 @@
 package tfd.coderover.ui
 
-import javax.swing.{AbstractAction, Action, ImageIcon, JButton, JComponent, JPanel, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JToolBar, SwingWorker}
+import javax.swing.{AbstractAction, Action, ImageIcon, JButton, JComponent, JComboBox, JPanel, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JToolBar, SwingWorker}
 import javax.swing.filechooser.{FileNameExtensionFilter}
 import java.awt.{BorderLayout, Color, Dimension, Font, Graphics, Graphics2D}
 import java.awt.event.{ActionEvent}
@@ -15,38 +15,77 @@ import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 
 import Math._
 
-class MainApplication {
-	def makePaintedImage(width:Int, height:Int, painter:Graphics => Unit) = {
+abstract class Task(val title:String, val description:String, val scenarios:Scenario*) {
+  
+  def isComplete(environment:Environment, state:State):Boolean
+  
+  def createNewEnvironment():GUIEnvironment
+}
+
+object SimpleTask extends Task("Simple Task", "Simple Task", new Scenario("Only Scenario") {
+	def createStartState() = new State(2,2,0)
+  }) {
+  
+  def isComplete(environment:Environment, state:State) = state match {
+    case State(8,8,_) => true
+    case _ => false
+  }
+  
+  def createNewEnvironment() = new GUIEnvironment(10, 10, 50)
+}
+
+abstract class Scenario(val description:String) {
+  def createStartState():State
+} 
+
+
+class GUIEnvironment(sizeX:Int, sizeY:Int, squareSize:Int) extends BoundedEnvironment(sizeX, sizeY) {
+  val canvas = new PCanvas(); 
+	
+  private val layer = canvas.getLayer() 
+  
+  def makePaintedImage(width:Int, height:Int, painter:Graphics => Unit) = {
 		val image = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
     	painter(image.getGraphics)
     	image
-	}
-	  
-	private var currentFile:File = _
+  }
   
-	private val canvas = new PCanvas(); 
-	
-	private val layer = canvas.getLayer() 
-    
-    private val background = new PImage(makePaintedImage(401,401, { g:Graphics => 
+  val background = new PImage(makePaintedImage(sizeX * squareSize + 1, sizeY * squareSize + 1, { g:Graphics => 
 	    	g.setColor(Color.BLACK)
-       	for (i <- 0 to 8) {
-       	  g.drawLine(i * 50, 0, i * 50, 399)
-       	  g.drawLine(0, i * 50, 399, i * 50)
+        for (i <- 0 to sizeX) {
+       		g.drawLine(i * squareSize, 0, i * squareSize, sizeX * squareSize - 1)
        	}
-    }))
-    layer.addChild(background)
+    	for (i <- 0 to sizeY) {
+        	g.drawLine(0, i * squareSize, sizeY * squareSize - 1, i * squareSize)
+        }
+  }))
+  
+  layer.addChild(background)
                                 
-    //canvas.setPanEventHandler(null);
-    private val robot = new PImage(makePaintedImage(50,50, { g:Graphics => 
+  //canvas.setPanEventHandler(null);
+  val robot = new PImage(makePaintedImage(50,50, { g:Graphics => 
         	g.setColor(Color.RED)
           	g.drawLine(25, 10, 10, 40)
             g.drawLine(10, 40, 40, 40)
             g.drawLine(40, 40, 25, 10)
-        }))
-    private val currentState = new State(0, 0, 1)
-    background.addChild(robot)
+  }))
+  background.addChild(robot)
+}
+
+class MainApplication {
+	private var currentFile:File = _
+	
+	private var currentTask:Task = SimpleTask
+ 
+	private var currentScenario = currentTask.scenarios(0)
+  
+	private var currentState:State = currentScenario.createStartState
+
+  	private val environment = new GUIEnvironment(10,10,50)
     
+    private val evaluator = new GUIEvaluator(environment.robot, environment.background, environment)
+   	evaluator.syncToState(currentState)
+ 	
     private val codeFont = new Font("Courier", Font.BOLD, 12)
     
     private val codeText = new JTextArea();
@@ -65,12 +104,7 @@ class MainApplication {
         setFont(codeFont)
     	CutCopyPastePopupSupport.enable(consoleText)
     }    
-    
-    private val boundedEnvironment = new BoundedEnvironment(7,7)    
-    
-    private val evaluator = new GUIEvaluator(robot, background, boundedEnvironment)
-   	evaluator.syncToState(currentState)
-    
+        
     def icon(s:String) = new ImageIcon(getClass().getClassLoader().getResource(s))
     
     private lazy val newAction = new AbstractAction("New") {
@@ -150,7 +184,7 @@ class MainApplication {
    						val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
    						publish(parseResult.toString)
    						if (parseResult.successful) {
-   							currentState.stopped = false
+   							currentState = SimpleTask.scenarios(0).createStartState
    							evaluator.evaluate(parseResult.get, currentState)
    						}   					
    					}
@@ -164,7 +198,13 @@ class MainApplication {
    					} 
         
    					override def done() {
-   						canvas.repaint()
+   						environment.canvas.repaint()
+   						if (currentState.stopped) {
+   							consoleText.append(currentState.abend match {
+   							  	case Some(abend) => abend.message
+   							  	case None => "Stopped by user"
+   							})
+   						}
    						runAction.setEnabled(true)
    						stopAction.setEnabled(false)
    					}
@@ -219,12 +259,13 @@ class MainApplication {
 //    	add(createButtonForAction(saveAction, "save.png", "Save current Code Rover code to file"))
     	add(createButtonForAction(runAction, "go.png", "Run Code Rover"))
     	add(createButtonForAction(stopAction, "stop.png", "Stop Running Program"))
+        add(new JComboBox())
     }
     
     private val codeCanvasPane = new JSplitPane(
     		JSplitPane.HORIZONTAL_SPLIT,
     		new JScrollPane(codeText),
-    		new JScrollPane(canvas)
+    		new JScrollPane(environment.canvas)
     )
     codeCanvasPane.setDividerLocation(350)
     codeCanvasPane.setPreferredSize(new Dimension(780, 410))
