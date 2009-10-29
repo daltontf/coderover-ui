@@ -31,7 +31,7 @@ object SimpleTask extends Task("Simple Task", "Simple Task", new Scenario("Only 
     case _ => false
   }
   
-  def createNewEnvironment() = new GUIEnvironment(10, 10, 50)
+  def createNewEnvironment() = new GUIEnvironment(10, 10)
 }
 
 abstract class Scenario(val description:String) {
@@ -39,7 +39,23 @@ abstract class Scenario(val description:String) {
 } 
 
 
-class GUIEnvironment(sizeX:Int, sizeY:Int, squareSize:Int) extends BoundedEnvironment(sizeX, sizeY) {
+class GUIEnvironment(sizeX:Int, sizeY:Int) extends BoundedEnvironment(sizeX, sizeY) {
+
+}
+
+class GUIViewController(squareSize:Int, environment:GUIEnvironment) {
+	private val colorMap = Map(
+								0 -> Color.BLACK,
+								1 -> Color.GREEN,
+								2 -> Color.YELLOW,
+								3 -> Color.BLUE,
+								4 -> Color.RED,
+								5 -> Color.WHITE,
+								6 -> Color.CYAN,
+								7 -> Color.MAGENTA,
+								8 -> Color.ORANGE
+							)
+  
   val canvas = new PCanvas(); 
 	
   private val layer = canvas.getLayer() 
@@ -50,26 +66,41 @@ class GUIEnvironment(sizeX:Int, sizeY:Int, squareSize:Int) extends BoundedEnviro
     	image
   }
   
-  val background = new PImage(makePaintedImage(sizeX * squareSize + 1, sizeY * squareSize + 1, { g:Graphics => 
+  val background = new PImage(makePaintedImage(environment.sizeX * squareSize + 1, environment.sizeY * squareSize + 1, { g:Graphics => 
 	    	g.setColor(Color.BLACK)
-        for (i <- 0 to sizeX) {
-       		g.drawLine(i * squareSize, 0, i * squareSize, sizeX * squareSize - 1)
+        for (i <- 0 to environment.sizeX) {
+       		g.drawLine(i * squareSize, 0, i * squareSize, environment.sizeX * squareSize - 1)
        	}
-    	for (i <- 0 to sizeY) {
-        	g.drawLine(0, i * squareSize, sizeY * squareSize - 1, i * squareSize)
+    	for (i <- 0 to environment.sizeY) {
+        	g.drawLine(0, i * squareSize, environment.sizeY * squareSize - 1, i * squareSize)
         }
   }))
   
   layer.addChild(background)
                                 
   //canvas.setPanEventHandler(null);
-  val robot = new PImage(makePaintedImage(50,50, { g:Graphics => 
+  val robot = new PImage(makePaintedImage(squareSize,squareSize, { g:Graphics => 
         	g.setColor(Color.RED)
-          	g.drawLine(25, 10, 10, 40)
-            g.drawLine(10, 40, 40, 40)
-            g.drawLine(40, 40, 25, 10)
+        	val oneHalf = squareSize/2;
+        	val oneFifth = squareSize/5;
+        	val fourFifths = oneFifth * 4
+          	g.drawLine(oneHalf, oneFifth, oneFifth, fourFifths)
+            g.drawLine(oneFifth, fourFifths, fourFifths, fourFifths)
+            g.drawLine(fourFifths, fourFifths, oneHalf, oneFifth)
   }))
-  background.addChild(robot)
+  background.addChild(robot)  
+  
+  def paint(state:State, color:Int) {
+    if (colorMap.contains(color)) {
+    	val g = background.getImage.getGraphics
+		val x = state.gridX * squareSize
+		val y = state.gridY * squareSize
+		g.setColor(colorMap(color))
+		g.fillRect(x + 1, y + 1, squareSize-1, squareSize-1)
+    } else {
+      // TODO fail
+    }
+  }
 }
 
 class MainApplication {
@@ -81,9 +112,11 @@ class MainApplication {
   
 	private var currentState:State = currentScenario.createStartState
 
-  	private val environment = new GUIEnvironment(10,10,50)
+  	private val environment = new GUIEnvironment(10,10)
+   
+    private val viewController = new GUIViewController(50, environment)
     
-    private val evaluator = new GUIEvaluator(environment.robot, environment.background, environment)
+    private val evaluator = new GUIEvaluator(environment, viewController)
    	evaluator.syncToState(currentState)
  	
     private val codeFont = new Font("Courier", Font.BOLD, 12)
@@ -185,6 +218,7 @@ class MainApplication {
    						publish(parseResult.toString)
    						if (parseResult.successful) {
    							currentState = SimpleTask.scenarios(0).createStartState
+   							evaluator.syncToState(currentState)
    							evaluator.evaluate(parseResult.get, currentState)
    						}   					
    					}
@@ -198,12 +232,16 @@ class MainApplication {
    					} 
         
    					override def done() {
-   						environment.canvas.repaint()
+   						viewController.canvas.repaint()
    						if (currentState.stopped) {
    							consoleText.append(currentState.abend match {
    							  	case Some(abend) => abend.message
    							  	case None => "Stopped by user"
    							})
+   						} else {
+   						  if (currentTask.isComplete(environment, currentState)) {
+   							  consoleText.append("SUCCESS !!");
+   						  }
    						}
    						runAction.setEnabled(true)
    						stopAction.setEnabled(false)
@@ -265,7 +303,7 @@ class MainApplication {
     private val codeCanvasPane = new JSplitPane(
     		JSplitPane.HORIZONTAL_SPLIT,
     		new JScrollPane(codeText),
-    		new JScrollPane(environment.canvas)
+    		new JScrollPane(viewController.canvas)
     )
     codeCanvasPane.setDividerLocation(350)
     codeCanvasPane.setPreferredSize(new Dimension(780, 410))
