@@ -1,9 +1,9 @@
 package tfd.coderover.ui
 
-import javax.swing.{AbstractAction, Action, ImageIcon, JButton, JComponent, JComboBox, JPanel, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JToolBar, SwingWorker}
+import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComponent, JComboBox, JPanel, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JToolBar, Scrollable, SwingWorker}
 import javax.swing.filechooser.{FileNameExtensionFilter}
-import java.awt.{BorderLayout, Color, Dimension, Font, Graphics, Graphics2D}
-import java.awt.event.{ActionEvent}
+import java.awt.{BorderLayout, Color, Dimension, Font, Graphics, Graphics2D, Rectangle}
+import java.awt.event.{ActionEvent, ItemListener, ItemEvent}
 import java.awt.image.{BufferedImage}
 import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter}
 
@@ -16,32 +16,71 @@ import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 import Math._
 
 abstract class Task(val title:String, val description:String, val scenarios:Scenario*) {
+  val taskState = new TaskState
   
   def isComplete(environment:Environment, state:State):Boolean
   
   def createNewEnvironment():GUIEnvironment
 }
 
-object SimpleTask extends Task("Simple Task", "Simple Task", new Scenario("Only Scenario") {
-	def createStartState() = new State(2,2,0)
-  }) {
+abstract class Scenario(val description:String) {
+  def createStartState():State
+  
+  override def toString = description
+}
+
+class StartStateScenario(state:State, description:String) extends Scenario(description) {
+	def createStartState() = State(state.gridX, state.gridY, state.directionIndex)
+}
+
+class TaskState {
+  val isComplete = false
+  val code = ""
+}
+
+object SimpleTask extends Task("Simple Task", 
+                               "Simple Task", 
+                               new StartStateScenario(new State(2,2,1), "Only Scenario")) {
   
   def isComplete(environment:Environment, state:State) = state match {
     case State(8,8,_) => true
     case _ => false
   }
   
-  def createNewEnvironment() = new GUIEnvironment(10, 10)
+  def createNewEnvironment() = new GUIEnvironment(10, 10, Some(8,8))
 }
 
-abstract class Scenario(val description:String) {
-  def createStartState():State
-} 
+object GotoXYTask extends Task("Goto X,Y",
+                               "Goto X,Y",
+                               new StartStateScenario(new State(2,2,0), "Start at 2,2"),
+                               new StartStateScenario(new State(2,8,0), "Start at 2,8"),
+                               new StartStateScenario(new State(8,2,0), "Start at 8,2"),
+                               new StartStateScenario(new State(8,8,0), "Start at 8,8")
+) {
+  def isComplete(environment:Environment, state:State) = state match {
+    case State(5,5,_) => true
+    case _ => false
+  }
+  
+  def createNewEnvironment() = new GUIEnvironment(10, 10, Some(5,5))
+ }
+                               
+                               
 
+object TaskManager {
+  private val task:Array[Task] = Array(GotoXYTask, SimpleTask)
+  private var currentTaskIndex = 0
+    
+  def currentTask = task(currentTaskIndex)
+}
 
-class GUIEnvironment(sizeX:Int, sizeY:Int) extends BoundedEnvironment(sizeX, sizeY) {
+class GUIEnvironment(sizeX:Int, sizeY:Int, val targetLocation:Option[(Int,Int)]) extends BoundedEnvironment(sizeX, sizeY) {
+  
+  def this(sizeX:Int, sizeY:Int) = this(sizeX, sizeY, None)	
 
 }
+
+
 
 class GUIViewController(squareSize:Int, environment:GUIEnvironment) {
 	private val colorMap = Map(
@@ -56,8 +95,10 @@ class GUIViewController(squareSize:Int, environment:GUIEnvironment) {
 								8 -> Color.ORANGE
 							)
   
-  val canvas = new PCanvas(); 
-	
+  val canvas = new PCanvas()  
+   
+  canvas.setPreferredSize(new Dimension(environment.sizeX * squareSize, environment.sizeY * squareSize)) 
+    
   private val layer = canvas.getLayer() 
   
   def makePaintedImage(width:Int, height:Int, painter:Graphics => Unit) = {
@@ -68,17 +109,28 @@ class GUIViewController(squareSize:Int, environment:GUIEnvironment) {
   
   val background = new PImage(makePaintedImage(environment.sizeX * squareSize + 1, environment.sizeY * squareSize + 1, { g:Graphics => 
 	    	g.setColor(Color.BLACK)
+	    
         for (i <- 0 to environment.sizeX) {
        		g.drawLine(i * squareSize, 0, i * squareSize, environment.sizeX * squareSize - 1)
        	}
     	for (i <- 0 to environment.sizeY) {
         	g.drawLine(0, i * squareSize, environment.sizeY * squareSize - 1, i * squareSize)
         }
+    	if (environment.targetLocation != None) {
+    		val coordinates = environment.targetLocation.get
+    		g.drawArc(coordinates._1 * squareSize + 1, 
+    			      coordinates._2 * squareSize + 1,
+    			      squareSize - 2,
+    			      squareSize - 2,
+    			      0,
+    			      360);
+      
+    	}
   }))
   
   layer.addChild(background)
                                 
-  //canvas.setPanEventHandler(null);
+  canvas.setPanEventHandler(null);
   val robot = new PImage(makePaintedImage(squareSize,squareSize, { g:Graphics => 
         	g.setColor(Color.RED)
         	val oneHalf = squareSize/2;
@@ -98,7 +150,7 @@ class GUIViewController(squareSize:Int, environment:GUIEnvironment) {
 		g.setColor(colorMap(color))
 		g.fillRect(x + 1, y + 1, squareSize-1, squareSize-1)
     } else {
-      // TODO fail
+    	state.fail(new Abend("Invalid Paint Color specified:" + color) { })
     }
   }
 }
@@ -106,13 +158,13 @@ class GUIViewController(squareSize:Int, environment:GUIEnvironment) {
 class MainApplication {
 	private var currentFile:File = _
 	
-	private var currentTask:Task = SimpleTask
+	private var currentTask:Task = TaskManager.currentTask
  
 	private var currentScenario = currentTask.scenarios(0)
   
 	private var currentState:State = currentScenario.createStartState
 
-  	private val environment = new GUIEnvironment(10,10)
+  	private val environment = currentTask.createNewEnvironment
    
     private val viewController = new GUIViewController(50, environment)
     
@@ -217,7 +269,7 @@ class MainApplication {
    						val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
    						publish(parseResult.toString)
    						if (parseResult.successful) {
-   							currentState = SimpleTask.scenarios(0).createStartState
+   							currentState = currentScenario.createStartState
    							evaluator.syncToState(currentState)
    							evaluator.evaluate(parseResult.get, currentState)
    						}   					
@@ -278,7 +330,8 @@ class MainApplication {
     menuBar.add(menu)   
     frame.setJMenuBar(menuBar)
  
-	private val contentPane = frame.getContentPane
+    private val scenarioCombo = new JComboBox()
+    private val contentPane = frame.getContentPane
 	private val toolBar = new JToolBar; { 
       import toolBar._
       
@@ -297,16 +350,27 @@ class MainApplication {
 //    	add(createButtonForAction(saveAction, "save.png", "Save current Code Rover code to file"))
     	add(createButtonForAction(runAction, "go.png", "Run Code Rover"))
     	add(createButtonForAction(stopAction, "stop.png", "Stop Running Program"))
-        add(new JComboBox())
+        val panel = new JPanel
+        panel.add(scenarioCombo)
+        add(panel)
     }
     
+    scenarioCombo.setModel(new DefaultComboBoxModel(currentTask.scenarios.toArray.asInstanceOf[Array[Object]])) 
+    scenarioCombo.addItemListener(new ItemListener() {
+    	override def itemStateChanged(ie:ItemEvent) {
+    		currentScenario = ie.getItem().asInstanceOf[Scenario]
+    		currentState = currentScenario.createStartState
+   			evaluator.syncToState(currentState)
+    	}      
+    })
+                                     
     private val codeCanvasPane = new JSplitPane(
     		JSplitPane.HORIZONTAL_SPLIT,
     		new JScrollPane(codeText),
     		new JScrollPane(viewController.canvas)
     )
-    codeCanvasPane.setDividerLocation(350)
-    codeCanvasPane.setPreferredSize(new Dimension(780, 410))
+    codeCanvasPane.setDividerLocation(265)
+    codeCanvasPane.setPreferredSize(new Dimension(780, 505))
     contentPane.add(toolBar, BorderLayout.NORTH) 
     contentPane.add(new JSplitPane(
     	JSplitPane.VERTICAL_SPLIT,
