@@ -1,8 +1,8 @@
 package tfd.coderover.ui
 
-import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComponent, JComboBox, JPanel, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JToolBar, Scrollable, SwingWorker}
+import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComponent, JComboBox, JLabel, JPanel, JProgressBar, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JToolBar, Scrollable, SwingWorker}
 import javax.swing.filechooser.{FileNameExtensionFilter}
-import java.awt.{BorderLayout, Color, Dimension, Font, Graphics, Graphics2D, Rectangle}
+import java.awt.{BorderLayout, Color, Dimension, EventQueue, FlowLayout, GridBagLayout, GridBagConstraints, Font, Graphics, Graphics2D, Rectangle}
 import java.awt.event.{ActionEvent, ItemListener, ItemEvent}
 import java.awt.image.{BufferedImage}
 import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter}
@@ -256,51 +256,128 @@ class MainApplication {
       			}
     	}
     }
+        
+    private def startRunOperations() {
+    	consoleText.setText("")      
     
+    	runAction.setEnabled(false)
+    	runTaskAction.setEnabled(false)
+  		scenarioCombo.setEnabled(false)
+    
+  		stopAction.setEnabled(true)
+    }
+    
+    private def postRunOperations() {
+    	runAction.setEnabled(true)
+    	runTaskAction.setEnabled(true)
+  		scenarioCombo.setEnabled(true)
+
+  		stopAction.setEnabled(false)
+    }
+        
     private lazy val runAction:AbstractAction = new AbstractAction("Run") {
     	  		  
-  			override def actionPerformed(ae:ActionEvent) {
-  				runAction.setEnabled(false)
-  				stopAction.setEnabled(true)
-  				consoleText.setText("")
-   				new SwingWorker[Unit,String]() {
-   	  					   	  				    
-   					override def doInBackground() {
-   						val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
-   						publish(parseResult.toString)
-   						if (parseResult.successful) {
-   							currentState = currentScenario.createStartState
-   							evaluator.syncToState(currentState)
-   							evaluator.evaluate(parseResult.get, currentState)
-   						}   					
-   					}
+  		override def actionPerformed(ae:ActionEvent) {
+  			startRunOperations()
+  			new RunWorker().execute    	  		  
+   		}
+     }
+    
+    abstract private class BaseWorker extends SwingWorker[Unit,String]() {
+    	
+    	override def process(strings:java.util.List[String]) {
+ 			 import  scala.collection.jcl.Conversions._ 
+ 			 strings.map { string =>
+ 					consoleText.append(string)
+ 					consoleText.append("\n")
+ 			}
+ 			consoleText.setCaretPosition(consoleText.getDocument().getLength())
+ 		}
+     
+    	override def done() {
+ 			viewController.canvas.repaint()
+ 			postRunOperations()
+   		}
+     
+    	protected def buildTaskCompletionMessage() = {
+    		val sb = new StringBuffer()
+    		sb.append(currentScenario)
+    		sb.append(" - ")
+    		if (currentState.stopped) {
+    			sb.append(currentState.abend match {
+ 			  		case Some(abend) => abend.message
+ 			  		case None => "Stopped by user"
+    			})
+    		} else {
+    			if (currentTask.isComplete(environment, currentState)) {
+    				sb.append("SUCCESS !!")
+    			} else {
+    				sb.append("FAILED !!")
+    				currentState.stopped = true
+    			}
+    		}
+    		sb.toString
+    	}      
+    }
+    
+    private class RunTaskWorker extends BaseWorker {
+      
+ 		override def doInBackground() {
+ 			val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
+ 			publish(parseResult.toString)
+ 			if (parseResult.successful) {
+ 				var scenarioIndex = 0
+ 				while (scenarioIndex < currentTask.scenarios.length) {
+ 					EventQueue.invokeAndWait(new Thread {
+ 					  override def run() {
+ 						  scenarioCombo.setSelectedIndex(scenarioIndex)
+ 					  }
+ 					})
+ 					currentState = currentScenario.createStartState
+ 					evaluator.syncToState(currentState)
+ 					evaluator.evaluate(parseResult.get, currentState)
+ 					publish(buildTaskCompletionMessage()) 	
+ 					scenarioIndex += 1
+ 					EventQueue.invokeAndWait(new Thread {
+ 						override def run() {
+ 						  progressBar.setValue(scenarioIndex)
+ 						  println(currentState.stopped)
+ 						  if (currentState.stopped) {
+ 							  progressBar.setForeground(Color.RED)
+ 						  }
+ 					  }
+ 					})
+ 					if (currentState.stopped) {
+ 					  scenarioIndex = currentTask.scenarios.length
+ 					} 									
+ 				} 
+ 			}
+ 		} 		
+    }
+    
+    private class RunWorker extends BaseWorker {
+ 		override def doInBackground() {
+ 			val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
+ 			publish(parseResult.toString)
+ 			if (parseResult.successful) {
+ 				currentState = currentScenario.createStartState
+ 				evaluator.syncToState(currentState)
+ 				evaluator.evaluate(parseResult.get, currentState)
+ 				publish(buildTaskCompletionMessage())
+ 			} 
+ 		} 		
+    }
         
-   					override def process(strings:java.util.List[String]) {
-   						 import  scala.collection.jcl.Conversions._ 
-   						 strings.map { string =>
-   							consoleText.append(string)
-   							consoleText.append("\n")
-   						}
-   					} 
-        
-   					override def done() {
-   						viewController.canvas.repaint()
-   						if (currentState.stopped) {
-   							consoleText.append(currentState.abend match {
-   							  	case Some(abend) => abend.message
-   							  	case None => "Stopped by user"
-   							})
-   						} else {
-   						  if (currentTask.isComplete(environment, currentState)) {
-   							  consoleText.append("SUCCESS !!");
-   						  }
-   						}
-   						runAction.setEnabled(true)
-   						stopAction.setEnabled(false)
-   					}
-   	  			}.execute    	  		  
-   	  		}
-     } 
+    private lazy val runTaskAction:AbstractAction = new AbstractAction("Run Task") {
+   	 	override def actionPerformed(ae:ActionEvent) {
+   	 		progressBar.setValue(0)
+   	 		progressBar.setMinimum(0)
+   	 		progressBar.setMaximum(currentTask.scenarios.length)
+   	 		progressBar.setForeground(Color.GREEN)
+  			startRunOperations()
+  			new RunTaskWorker().execute    
+  		}
+    }
     
     private lazy val stopAction = new AbstractAction("Stop") {
     	setEnabled(false)
@@ -330,6 +407,8 @@ class MainApplication {
     menuBar.add(menu)   
     frame.setJMenuBar(menuBar)
  
+    private val progressBar = new JProgressBar
+    private val taskLabel = new JLabel()
     private val scenarioCombo = new JComboBox()
     private val contentPane = frame.getContentPane
 	private val toolBar = new JToolBar; { 
@@ -348,11 +427,26 @@ class MainApplication {
 //		add(createButtonForAction(newAction, "new.png", "Start new Code Rover program"))
 //    	add(createButtonForAction(openAction, "open.png", "Open existing .coderover file"))
 //    	add(createButtonForAction(saveAction, "save.png", "Save current Code Rover code to file"))
-    	add(createButtonForAction(runAction, "go.png", "Run Code Rover"))
-    	add(createButtonForAction(stopAction, "stop.png", "Stop Running Program"))
         val panel = new JPanel
-        panel.add(scenarioCombo)
+        panel.setOpaque(false)
+        panel.setLayout(new GridBagLayout())
+        val gbc = new GridBagConstraints(); 
+        import GridBagConstraints._
+        gbc.anchor = NORTHWEST
+        gbc.fill = BOTH
+        gbc.weightx = 1.0
+        panel.add(progressBar, gbc)
+        progressBar.setLayout(new BorderLayout())
+        progressBar.add(new JLabel("Task : "), BorderLayout.WEST)
+        progressBar.add(taskLabel)        
+        gbc.fill = VERTICAL
+        gbc.weightx = 0.0
+        panel.add(createButtonForAction(runTaskAction, "go-go.png", "Run all scenarios"), gbc)
+        panel.add(scenarioCombo, gbc)
         add(panel)
+    	add(createButtonForAction(runAction, "go.png", "Run for current scenario"))
+    	add(createButtonForAction(stopAction, "stop.png", "Stop Running Program"))
+        
     }
     
     scenarioCombo.setModel(new DefaultComboBoxModel(currentTask.scenarios.toArray.asInstanceOf[Array[Object]])) 
