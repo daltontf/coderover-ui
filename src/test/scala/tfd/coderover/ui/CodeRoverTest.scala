@@ -110,9 +110,10 @@ class CodeRoverTest {
 
 		val frmOper = findJFrame(frm => frm.getTitle == "Code Rover")
 
-		val List(runButtonOper, stopButtonOper) =
-        List("Run Code Rover",
-             "Stop Running Program").map(toolTipText => findJButton(frmOper, toolTipTextEquals(toolTipText)))
+		val List(runButtonOper, runTaskButtonOper, stopButtonOper) =
+        List("Run all scenarios",
+        	 "Run for current scenario",
+             "Stop running program").map(toolTipText => findJButton(frmOper, toolTipTextEquals(toolTipText)))
 
     val List(codeOper, consoleOper) =
 			  List("Enter code here",
@@ -127,6 +128,6 @@ class CodeRoverTest {
 			assertEquals(parserOutput, consoleOper.getText)
 		}
 
-		runCodeRover("", "[1.1] parsed: List()\n")
+		runCodeRover("", "[1.1] parsed: List()\nOnly Scenario - FAILED !!\n")
    }
 }
