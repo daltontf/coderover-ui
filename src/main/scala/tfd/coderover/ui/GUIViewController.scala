@@ -24,11 +24,21 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
 								8 -> Color.ORANGE
 							)
   
-  val canvas = new PCanvas()  
+  private[ui] val canvas = new PCanvas()
+
+  private val background = new PImage()
+
+  val robot = new PImage(makePaintedImage(squareSize,squareSize, { g:Graphics =>
+        	g.setColor(Color.RED)
+        	val oneHalf = squareSize/2;
+        	val oneFifth = squareSize/5;
+        	val fourFifths = oneFifth * 4
+          	g.drawLine(oneHalf, oneFifth, oneFifth, fourFifths)
+            g.drawLine(oneFifth, fourFifths, fourFifths, fourFifths)
+            g.drawLine(fourFifths, fourFifths, oneHalf, oneFifth)
+  }))
    
-  canvas.setPreferredSize(new Dimension(environment.sizeX * squareSize, environment.sizeY * squareSize)) 
-    
-  private val layer = canvas.getLayer() 
+ private val layer = canvas.getLayer()
   
   private def executeAnimation(duration:Int) {
 		robot.animateToTransform(transform, duration ) 
@@ -65,26 +75,8 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
   def drawBackground() {
 		background.setImage(buildBackground)
   }
-    
-  val background = new PImage()
-  
-  drawBackground()
-  
-  layer.addChild(background)
-                                
-  canvas.setPanEventHandler(null);
-  val robot = new PImage(makePaintedImage(squareSize,squareSize, { g:Graphics => 
-        	g.setColor(Color.RED)
-        	val oneHalf = squareSize/2;
-        	val oneFifth = squareSize/5;
-        	val fourFifths = oneFifth * 4
-          	g.drawLine(oneHalf, oneFifth, oneFifth, fourFifths)
-            g.drawLine(oneFifth, fourFifths, fourFifths, fourFifths)
-            g.drawLine(fourFifths, fourFifths, oneHalf, oneFifth)
-  }))
-  background.addChild(robot)  
-  
-  def paint(state:State, color:Int) {
+
+  override def paint(color:Int, state:State) {
     if (colorMap.contains(color)) {
     	val g = background.getImage.getGraphics
 		val x = state.gridX * squareSize
@@ -96,7 +88,7 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
     }
   }
   
-  	def syncToState(state:State) {
+  def syncToState(state:State) {
 		transform = new AffineTransform()
 		transform.translate(state.gridX * 50, state.gridY * 50)
 		transform.rotate(state.directionIndex * (java.lang.Math.PI/2), 25, 25)
@@ -120,8 +112,10 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
 	  transform.rotate(-java.lang.Math.PI/2, 25, 25)
 	  executeAnimation(1000)
 	}
- 
-	override def paint(color:Int, state:State) = {
-	  super.paint(color, state)
-   }
+
+  canvas.setPreferredSize(new Dimension(environment.sizeX * squareSize, environment.sizeY * squareSize)) 
+  drawBackground()
+  layer.addChild(background)
+  canvas.setPanEventHandler(null);
+  background.addChild(robot)
 }

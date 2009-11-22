@@ -16,6 +16,8 @@ import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 import Math._
 
 class MainApplication {
+  import edt._
+
 	private var currentFile:File = _
 		
 	private var currentScenario = TaskManager.currentTask.scenarios(0)
@@ -24,7 +26,12 @@ class MainApplication {
  
 	private var currentEnvironment = TaskManager.currentTask.createNewEnvironment
 
-  private var viewController = new GUIViewController(50, currentEnvironment)
+  private var viewController = new GUIViewController(50, currentEnvironment) {
+
+    override def print(value:String) = onEDTLater {
+       consoleTextAppend(value)
+    }
+  }
    
   private var evaluator = new Evaluator(currentEnvironment, viewController)
    	
@@ -33,21 +40,26 @@ class MainApplication {
   private val codeText = new JTextArea();
     { 	import codeText._
     	setToolTipText("Enter code here")
-        setFont(codeFont)
-        CutCopyPastePopupSupport.enable(codeText)
+      setFont(codeFont)
+      CutCopyPastePopupSupport.enable(codeText)
     }
     
   private val consoleText = new JTextArea();
     {   import consoleText._
     	setPreferredSize(new Dimension(700, 120))
     	setEditable(false)
-        setLineWrap(true)
+      setLineWrap(true)
     	setToolTipText("Console messages")
-        setFont(codeFont)
+      setFont(codeFont)
     	CutCopyPastePopupSupport.enable(consoleText)
-    }    
+    }
+
+  private def consoleTextAppend(text:String)() {
+    consoleText.append(text)
+    consoleText.append("\n")
+  }
         
-  def icon(s:String) = new ImageIcon(getClass().getClassLoader().getResource(s))
+  private def icon(s:String) = new ImageIcon(getClass().getClassLoader().getResource(s))
     
   private lazy val newAction = new AbstractAction("New") {
 					override def actionPerformed(ae:ActionEvent) {
@@ -64,7 +76,7 @@ class MainApplication {
     						val file = chooser.getSelectedFile
     						if (file.exists) {
     							currentState.stopped = true
-    							new Worker() {
+    							new Thread(new Runnable() {
     								override def run() = {
     										val reader = new BufferedReader(new FileReader(file))
     										val buffer = new StringBuffer(file.length.asInstanceOf[Int])
@@ -77,7 +89,7 @@ class MainApplication {
     										  codeText.setText(buffer.toString)
     										}
     								}
-    							}.start
+    							}).start
     						}
     					}
     				}
@@ -100,14 +112,14 @@ class MainApplication {
     					JOptionPane.showConfirmDialog(frame, "File Exists", "Existing file will be overwritten", OK_CANCEL_OPTION) != OK_OPTION) {
     					return
     				}
-    				new Worker() {
+    				new Thread(new Runnable() {
   						override def run() {
   							val writer = new BufferedWriter(new FileWriter(file))
    	 								val text = codeText.getText
    	 								writer.write(text, 0, text.length)
    	 								writer.close
    	 							}
-   	 						}.start
+   	 						}).start
       			}
     	}
     }
@@ -117,7 +129,7 @@ class MainApplication {
   		override def actionPerformed(ae:ActionEvent) {
   			startRunOperations()
   			viewController.drawBackground()
-  			new RunWorker().start    	  		  
+  			new Thread(new RunWorker()).start    	  		  
    		}
      }
     
@@ -128,11 +140,11 @@ class MainApplication {
    	 		progressBar.setMaximum(TaskManager.currentTask.scenarios.length)
    	 		progressBar.setForeground(Color.GREEN)
   			startRunOperations()
-  			new RunTaskWorker().start    
+  			new Thread(new RunTaskWorker()).start
   		}
     }
     
-  abstract private class BaseRunWorker extends Worker {
+  abstract private class BaseRunWorker extends Runnable {
     	protected class TaskCompletionStatus() {
     		val stopped = currentState.stopped
     		val complete = TaskManager.currentTask.stateIsComplete(currentEnvironment, currentState)
@@ -155,12 +167,7 @@ class MainApplication {
     		)
     		val message = sb.toString
     	}
-      
-        def consoleTextAppend(text:String)() {
-        	consoleText.append(text)
-        	consoleText.append("\n")
-        }
-    	
+
         def doRun()
         
         override def run() {
