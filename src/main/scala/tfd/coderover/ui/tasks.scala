@@ -1,5 +1,7 @@
 package tfd.coderover.ui
 
+import tfd.coderover.{Abend, Environment, State}
+
 abstract class Task(val title:String, val description:String, val scenarios:Scenario*) {
   val taskState = new TaskState
   
@@ -41,9 +43,39 @@ object Goto55Task extends Task("Goto 5,5",
   
   def createNewEnvironment() = new GUIEnvironment(10, 10, Some(5,5))
  }
+
+object FollowTheYellowBrickRoad extends Task("Follow the Yellow Brick Road",
+                                             "Navigate to destination touching only yellow ",
+                                              new StartStateScenario(new State(2,2,0), "Scenario 1"))
+ {
+  object MovedToUnpainted extends Abend("Moved to unpainted square")
+
+  def stateIsComplete(environment:Environment, state:State) = state match {
+    case State(8,8,_) => true
+    case _ => false
+  }
+
+  def createNewEnvironment() = new GUIEnvironment(10, 10, Some(8,8)) {
+      override def  postMoveForward(state:State) {
+        if (!isPainted(state.gridX, state.gridY)) {
+          state.fail(MovedToUnpainted)
+        }
+      }
+
+      override def reset() {
+        super.reset()
+        val painted = Array(
+          (2,2), (2,3), (3,3), (3,4), (3,5), (3,6), (2,6), (1,6), (1,7), (1,8), (2,8), (3,8),
+          (4,8), (5,8), (5,7), (5,6), (5,5), (5,4), (5,3), (5,2), (5,1), (6,1), (7,1), (8,1),
+          (9,1), (9,2), (9,3), (9,4), (8,4), (7,4), (7,5), (7,6), (8,6), (9,6), (9,7), (9,8),
+          (8,8))
+        painted.map { t => paint(t._1, t._2) }
+      }
+  }
+}
   
 object TaskManager {
-  private val task:Array[Task] = Array(SimpleTask, Goto55Task)
+  private val task:Array[Task] = Array(FollowTheYellowBrickRoad, SimpleTask, Goto55Task)
   private var currentTaskIndex = 0
   
   var allTasksComplete = false

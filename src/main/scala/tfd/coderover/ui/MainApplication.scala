@@ -128,7 +128,6 @@ class MainApplication {
     	  		  
   		override def actionPerformed(ae:ActionEvent) {
   			startRunOperations()
-  			viewController.drawBackground()
   			new Thread(new RunWorker()).start    	  		  
    		}
      }
@@ -172,8 +171,8 @@ class MainApplication {
         
         override def run() {
     	    doRun()
- 			viewController.canvas.repaint()
- 			postRunOperations()
+ 			    viewController.canvas.repaint()
+ 			    postRunOperations()
    		}    	      
     }
     
@@ -190,7 +189,7 @@ class MainApplication {
  				while (scenarioIndex < TaskManager.currentTask.scenarios.length && !stopped) {
  					onEDTWait {
  						scenarioCombo.setSelectedIndex(scenarioIndex)
- 						viewController.drawBackground()
+ 						viewController.syncEnvironment()
  					}
  					currentState = currentScenario.createStartState
  					viewController.syncToState(currentState)
@@ -210,7 +209,7 @@ class MainApplication {
  						} else {
  							TaskManager.nextTask()
  							updateTaskAndScenarios()
- 							viewController.drawBackground()
+ 							viewController.syncEnvironment()
  						}
  					}				
  				} 
@@ -286,8 +285,8 @@ class MainApplication {
     def updateTaskAndScenarios() {
         taskLabel.setText(TaskManager.currentTask.toString)
         viewController.syncToState(currentState)
-       	scenarioCombo.setModel(new DefaultComboBoxModel(TaskManager.currentTask.scenarios.toArray.asInstanceOf[Array[Object]])) 
-    	scenarioCombo.addItemListener(new ItemListener() {
+        scenarioCombo.setModel(new DefaultComboBoxModel(TaskManager.currentTask.scenarios.toArray.asInstanceOf[Array[Object]]))
+    	  scenarioCombo.addItemListener(new ItemListener() {
     		override def itemStateChanged(ie:ItemEvent) {
     			currentScenario = ie.getItem().asInstanceOf[Scenario]
     			currentState = currentScenario.createStartState

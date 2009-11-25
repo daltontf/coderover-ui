@@ -6,30 +6,32 @@ class GUIEnvironment(sizeX:Int, sizeY:Int, val targetLocation:Option[(Int,Int)])
   def this(sizeX:Int, sizeY:Int) = this(sizeX, sizeY, None)	
 
   private class Square {
-	  var paint:Option[Int] = None
+	  var painted = false
   }
   
-  private var grid = new Array[Array[Square]](sizeX, sizeY)
+  private var grid:Array[Array[Square]] = _
   
-  override def paint(color:Int, state:State) { 
-	  var square = grid(state.gridX)(state.gridY)
+  override def paint(x:Int, y:Int) {
+	  var square = grid(x)(y)
 	  if (square == null) {
 		  square = new Square()
-		  grid(state.gridX)(state.gridY) = square
+		  grid(x)(y) = square
 	  }
-	  square.paint = Some(color)
+	  square.painted = true
   }
 
   override def isPainted(x:Int, y:Int) = {
 	  var square = grid(x)(y)
-	  if (square == null) {
+    if (square == null) {
 		  false
 	  } else {
-	      square.paint != None
+	      square.painted
 	  }
   }
   
   def reset() {
     grid = new Array[Array[Square]](sizeX, sizeY)
   }
+
+  reset()
 }

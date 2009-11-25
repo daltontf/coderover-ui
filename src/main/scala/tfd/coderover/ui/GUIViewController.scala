@@ -12,19 +12,7 @@ import tfd.coderover.{Controller}
 class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) extends Controller(environment) {
 	private var transform:AffineTransform = _
       
-	private val colorMap = Map(
-								0 -> Color.BLACK,
-								1 -> Color.GREEN,
-								2 -> Color.YELLOW,
-								3 -> Color.BLUE,
-								4 -> Color.RED,
-								5 -> Color.WHITE,
-								6 -> Color.CYAN,
-								7 -> Color.MAGENTA,
-								8 -> Color.ORANGE
-							)
-  
-  private[ui] val canvas = new PCanvas()
+	private[ui] val canvas = new PCanvas()
 
   private val background = new PImage()
 
@@ -72,30 +60,39 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
     	}
   	})
 
-  def drawBackground() {
+  private def drawBackground() {
 		background.setImage(buildBackground)
   }
 
-  override def paint(color:Int, state:State) {
-    if (colorMap.contains(color)) {
-    	val g = background.getImage.getGraphics
-		val x = state.gridX * squareSize
-		val y = state.gridY * squareSize
-		g.setColor(colorMap(color))
+  private def renderPaint(color:Color, gridX:Int, gridY:Int) {
+    val g = background.getImage.getGraphics
+		val x = gridX * squareSize
+		val y = gridY * squareSize
+		g.setColor(color)
 		g.fillRect(x + 1, y + 1, squareSize-1, squareSize-1)
-    } else {
-    	state.fail(new Abend("Invalid Paint Color specified:" + color) { })
-    }
   }
-  
+
+  override def paint(state:State) {
+    environment.paint(state.gridX, state.gridY)
+    renderPaint(Color.YELLOW, state.gridX, state.gridY)
+  }
+
   def syncToState(state:State) {
 		transform = new AffineTransform()
 		transform.translate(state.gridX * 50, state.gridY * 50)
 		transform.rotate(state.directionIndex * (java.lang.Math.PI/2), 25, 25)
 		robot.setTransform(transform)
 	}
-	
-	override def moveForward(state:State) = {
+
+  def syncEnvironment() {
+    drawBackground()
+    for (x <- 0 to environment.sizeX-1; y <- 0 to environment.sizeY-1)
+      if (environment.isPainted(x,y)) {
+        renderPaint(Color.YELLOW, x, y)
+      }
+  }
+
+  override def moveForward(state:State) = {
 	  super.moveForward(state)
 	  transform.translate(0, -50)
       executeAnimation(500)
@@ -117,5 +114,6 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
   drawBackground()
   layer.addChild(background)
   canvas.setPanEventHandler(null);
+  syncEnvironment()
   background.addChild(robot)
 }
