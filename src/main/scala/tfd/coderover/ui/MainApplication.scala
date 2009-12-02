@@ -180,7 +180,7 @@ class MainApplication {
     	private var failedScenario = false
       
  		override def doRun() {
-    		currentEnvironment.reset()
+    		viewController.reset()
     		val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
  			onEDTLater(consoleTextAppend(parseResult.toString))
  			if (parseResult.successful) {
@@ -219,7 +219,7 @@ class MainApplication {
     
     private class RunWorker extends BaseRunWorker {
  		override def doRun() {
- 			currentEnvironment.reset()
+ 			viewController.reset()
  			val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
  			onEDTLater(consoleTextAppend(parseResult.toString))
  			if (parseResult.successful) {

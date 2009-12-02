@@ -7,9 +7,9 @@ import java.awt.geom.AffineTransform
 import edu.umd.cs.piccolo.PCanvas;
 import edu.umd.cs.piccolo.nodes.PImage;
 
-import tfd.coderover.{Controller}
+import tfd.coderover.{Controller, DefaultConstraints}
 
-class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) extends Controller(environment) {
+class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) extends Controller(environment, DefaultConstraints) {
 	private var transform:AffineTransform = _
       
 	private[ui] val canvas = new PCanvas()
@@ -109,6 +109,11 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
 	  transform.rotate(-java.lang.Math.PI/2, 25, 25)
 	  executeAnimation(1000)
 	}
+
+  def reset() {
+    environment.reset()
+    resetCallStack()
+  }
 
   canvas.setPreferredSize(new Dimension(environment.sizeX * squareSize, environment.sizeY * squareSize)) 
   drawBackground()

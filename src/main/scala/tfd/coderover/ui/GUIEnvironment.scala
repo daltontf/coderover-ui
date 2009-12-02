@@ -1,8 +1,8 @@
 package tfd.coderover.ui
 
-import _root_.tfd.coderover.{BoundedEnvironment, State}
+import _root_.tfd.coderover.{Environment, State}
 
-class GUIEnvironment(sizeX:Int, sizeY:Int, val targetLocation:Option[(Int,Int)]) extends BoundedEnvironment(sizeX, sizeY) {
+class GUIEnvironment(sizeX:Int, sizeY:Int, val targetLocation:Option[(Int,Int)]) extends Environment(sizeX, sizeY) {
   def this(sizeX:Int, sizeY:Int) = this(sizeX, sizeY, None)	
 
   private class Square {
@@ -31,7 +31,7 @@ class GUIEnvironment(sizeX:Int, sizeY:Int, val targetLocation:Option[(Int,Int)])
 	  }
   }
 
-  override def isPainted(x:Int, y:Int, state:State):Boolean = isPainted(state.gridX, state.gridY)
+  override def isPainted(x:Int, y:Int, state:State):Boolean = isPainted(x, y)
 
   def reset() {
     grid = new Array[Array[Square]](sizeX, sizeY)
