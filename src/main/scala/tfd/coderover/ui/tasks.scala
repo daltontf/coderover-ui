@@ -75,7 +75,7 @@ object FollowTheYellowBrickRoad extends Task("Follow the Yellow Brick Road",
 }
   
 object TaskManager {
-  private val task:Array[Task] = Array(FollowTheYellowBrickRoad, SimpleTask, Goto55Task)
+  private val task:Array[Task] = Array(SimpleTask, Goto55Task, FollowTheYellowBrickRoad)
   private var currentTaskIndex = 0
   
   var allTasksComplete = false

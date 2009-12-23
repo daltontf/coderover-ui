@@ -1,6 +1,6 @@
 package tfd.coderover.ui
 
-import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComponent, JComboBox, JLabel, JPanel, JProgressBar, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JToolBar, Scrollable, SwingWorker}
+import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComponent, JComboBox, JLabel, JPanel, JProgressBar, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JTextPane, JToolBar, Scrollable, SwingWorker}
 import javax.swing.filechooser.{FileNameExtensionFilter}
 import java.awt.{BorderLayout, Color, Dimension, EventQueue, FlowLayout, GridBagLayout, GridBagConstraints, Font, Graphics, Graphics2D, Rectangle}
 import java.awt.event.{ActionEvent, ItemListener, ItemEvent}
@@ -12,51 +12,64 @@ import edu.umd.cs.piccolo.nodes.{PImage, PText}
 
 import _root_.tfd.coderover.{Environment, Instruction, State, LanguageParser, Evaluator}
 import _root_.tfd.gui.swing.CutCopyPastePopupSupport
+import _root_.tfd.gui.swing.codesyntaxpane.CodeSyntaxDocument
 
 import Math._
+import javax.swing.text.{StyleConstants, SimpleAttributeSet, AttributeSet, DefaultStyledDocument}
 
 class MainApplication {
   import edt._
 
 	private var currentFile:File = _
 		
-	private var currentScenario = TaskManager.currentTask.scenarios(0)
+	private var currentScenario:Scenario = _
   
-	private var currentState:State = currentScenario.createStartState
+	private var currentState:State = _
  
-	private var currentEnvironment = TaskManager.currentTask.createNewEnvironment
+	private var currentEnvironment:GUIEnvironment = _
 
-  private var viewController = new GUIViewController(50, currentEnvironment) {
-
-    override def print(value:String) = onEDTLater {
-       consoleTextAppend(value)
-    }
-  }
+  private var viewController:GUIViewController = _
    
-  private var evaluator = new Evaluator(currentEnvironment, viewController)
+  private var evaluator:Evaluator = _
    	
   private val codeFont = new Font("Courier", Font.BOLD, 12)
-    
-  private val codeText = new JTextArea();
+
+  private val codeText = new JTextPane();
     { 	import codeText._
-    	setToolTipText("Enter code here")
-      setFont(codeFont)
-      CutCopyPastePopupSupport.enable(codeText)
-    }
-    
-  private val consoleText = new JTextArea();
-    {   import consoleText._
-    	setPreferredSize(new Dimension(700, 120))
-    	setEditable(false)
-      setLineWrap(true)
-    	setToolTipText("Console messages")
-      setFont(codeFont)
-    	CutCopyPastePopupSupport.enable(consoleText)
+    	  setToolTipText("Enter code here")
+        setFont(codeFont)
+        CutCopyPastePopupSupport.enable(codeText)
     }
 
-  private def consoleTextAppend(text:String)() {
-    consoleText.append(text)
-    consoleText.append("\n")
+  lazy private val blueTextAttribute = {
+    val attributeSet = new SimpleAttributeSet
+    StyleConstants.setForeground(attributeSet, Color.BLUE)
+    attributeSet
+  }
+
+  lazy private val redTextAttribute = {
+    val attributeSet = new SimpleAttributeSet
+    StyleConstants.setForeground(attributeSet, Color.RED)
+    attributeSet
+  }
+
+  private val consoleText = new JTextPane();
+    {   import consoleText._
+        setEditable(false)
+    	  //setLineWrap(true)
+        setDocument(new DefaultStyledDocument())
+    	  setToolTipText("Console messages")
+      	setFont(codeFont)
+    	  CutCopyPastePopupSupport.enable(consoleText)
+    }
+
+  private def consoleTextAppend(text:String, attributeSet:AttributeSet)() {
+     var endPos = consoleText.getStyledDocument.getLength
+     if (endPos > 0) {
+       consoleText.getStyledDocument.insertString(endPos, "\n", attributeSet)
+       endPos = endPos + 1
+     }
+     consoleText.getStyledDocument.insertString(endPos, text, attributeSet)
   }
         
   private def icon(s:String) = new ImageIcon(getClass().getClassLoader().getResource(s))
@@ -170,9 +183,13 @@ class MainApplication {
         def doRun()
         
         override def run() {
-    	    doRun()
- 			    viewController.canvas.repaint()
- 			    postRunOperations()
+    	    try {
+            doRun()
+ 			      viewController.canvas.repaint()
+ 			      postRunOperations()
+          } catch {
+            case ex:Exception => ex.printStackTrace(System.err)
+          }
    		}    	      
     }
     
@@ -182,11 +199,11 @@ class MainApplication {
  		override def doRun() {
     		viewController.reset()
     		val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
- 			onEDTLater(consoleTextAppend(parseResult.toString))
+ 			onEDTLater(consoleTextAppend(parseResult.toString, blueTextAttribute))
  			if (parseResult.successful) {
  				var scenarioIndex = 0
  				var stopped = false
- 				while (scenarioIndex < TaskManager.currentTask.scenarios.length && !stopped) {
+ 				while (scenarioIndex < TaskManager.currentTask.scenarios.length && !stopped && !failedScenario) {
  					onEDTWait {
  						scenarioCombo.setSelectedIndex(scenarioIndex)
  						viewController.syncEnvironment()
@@ -196,9 +213,9 @@ class MainApplication {
  					evaluator.evaluate(parseResult.get, currentState)
  					val taskCompletionStatus = new TaskCompletionStatus()
  					stopped = taskCompletionStatus.stopped
- 					onEDTLater(consoleTextAppend(taskCompletionStatus.message))
  					val failed = (taskCompletionStatus.stopped || !taskCompletionStatus.complete)
- 					if (failed) {
+ 					onEDTLater(consoleTextAppend(taskCompletionStatus.message, if (failed) redTextAttribute else blueTextAttribute))
+          if (failed) {
  					  failedScenario = true;
  					}
  					scenarioIndex += 1
@@ -206,13 +223,15 @@ class MainApplication {
  						progressBar.setValue(scenarioIndex)
  						if (failed) {
  							progressBar.setForeground(Color.RED)
- 						} else {
- 							TaskManager.nextTask()
- 							updateTaskAndScenarios()
- 							viewController.syncEnvironment()
- 						}
- 					}				
- 				} 
+            }
+           }
+         }
+         if (!stopped && !failedScenario) {  
+           onEDTLater {
+        	   TaskManager.nextTask()
+ 				updateTaskAndScenarios()
+           }
+         }
  			}
  		} 
     }
@@ -221,13 +240,14 @@ class MainApplication {
  		override def doRun() {
  			viewController.reset()
  			val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
- 			onEDTLater(consoleTextAppend(parseResult.toString))
+ 			onEDTLater(consoleTextAppend(parseResult.toString, blueTextAttribute))
  			if (parseResult.successful) {
  				currentState = currentScenario.createStartState
  				viewController.syncToState(currentState)
  				evaluator.evaluate(parseResult.get, currentState)
  				val taskCompletionStatus = new TaskCompletionStatus()
- 				onEDTLater(consoleTextAppend(taskCompletionStatus.message)) 	
+ 				val failed = (taskCompletionStatus.stopped || !taskCompletionStatus.complete)
+ 				onEDTLater(consoleTextAppend(taskCompletionStatus.message, if (failed) redTextAttribute else blueTextAttribute))
  			} 
  		} 		
     }   
@@ -242,7 +262,7 @@ class MainApplication {
     
      private def startRunOperations() {
     	consoleText.setText("")      
-    
+    	consoleText.scrollRectToVisible(new Rectangle(0,0,1,1)) 
     	runAction.setEnabled(false)
     	runTaskAction.setEnabled(false)
   		scenarioCombo.setEnabled(false)
@@ -284,19 +304,30 @@ class MainApplication {
     
     def updateTaskAndScenarios() {
         taskLabel.setText(TaskManager.currentTask.toString)
+        currentEnvironment = TaskManager.currentTask.createNewEnvironment
+        currentScenario = TaskManager.currentTask.scenarios(0)
+        viewController = new GUIViewController(50, currentEnvironment) {
+            override def print(value:String) = onEDTLater {
+              consoleTextAppend(value, null)
+            }
+        }
+        currentState = currentScenario.createStartState()
         viewController.syncToState(currentState)
+        viewController.syncEnvironment()
+        gridPane.setViewportView(viewController.canvas);
+        evaluator = new Evaluator(currentEnvironment, viewController)
         scenarioCombo.setModel(new DefaultComboBoxModel(TaskManager.currentTask.scenarios.toArray.asInstanceOf[Array[Object]]))
     	  scenarioCombo.addItemListener(new ItemListener() {
     		override def itemStateChanged(ie:ItemEvent) {
     			currentScenario = ie.getItem().asInstanceOf[Scenario]
     			currentState = currentScenario.createStartState
     			viewController.syncToState(currentState)
-    		}      
+    		}
     	})
      }
     
     private val contentPane = frame.getContentPane
-	private val toolBar = new JToolBar; { 
+	  private val toolBar = new JToolBar; {
       import toolBar._
       
       setFloatable(false)
@@ -330,29 +361,37 @@ class MainApplication {
         panel.add(scenarioCombo, gbc)
         add(panel)
     	add(createButtonForAction(runAction, "go.png", "Run for current scenario"))
-    	add(createButtonForAction(stopAction, "stop.png", "Stop running program"))
-        
+    	add(createButtonForAction(stopAction, "stop.png", "Stop running program"))        
     }
+
+    private val gridPane = new JScrollPane()
+
+    updateTaskAndScenarios()    
                                          
-    private val codeCanvasPane = new JSplitPane(
+    private[this] val codeCanvasPane = new JSplitPane(
     		JSplitPane.HORIZONTAL_SPLIT,
     		new JScrollPane(codeText),
-    		new JScrollPane(viewController.canvas)
+    		gridPane
     )
+    val codeTextDoc = new CodeSyntaxDocument(codeText)
+    codeText.setDocument(codeTextDoc)
+    
     codeCanvasPane.setDividerLocation(265)
     codeCanvasPane.setPreferredSize(new Dimension(780, 505))
     contentPane.add(toolBar, BorderLayout.NORTH) 
+    
+    private[this] val consolePane = new JScrollPane(consoleText)
+    consolePane.setPreferredSize(new Dimension(700,120))
+    
     contentPane.add(new JSplitPane(
     	JSplitPane.VERTICAL_SPLIT,
     		codeCanvasPane,
-    		new JScrollPane(consoleText)
+    		consolePane
     	),BorderLayout.CENTER)
     
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
     frame.pack
-    
-    updateTaskAndScenarios()
-    
+
     frame.setVisible(true)
 }
 

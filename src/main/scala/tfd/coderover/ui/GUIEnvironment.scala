@@ -20,7 +20,7 @@ class GUIEnvironment(sizeX:Int, sizeY:Int, val targetLocation:Option[(Int,Int)])
 	  square.painted = true
   }
 
-  override def paint(state:State) = paint(state.gridX, state.gridY)
+  override def paint(state:State) =  paint(state.gridX, state.gridY)
 
   def isPainted(x:Int, y:Int) = {
     var square = grid(x)(y)
@@ -31,8 +31,14 @@ class GUIEnvironment(sizeX:Int, sizeY:Int, val targetLocation:Option[(Int,Int)])
 	  }
   }
 
-  override def isPainted(x:Int, y:Int, state:State):Boolean = isPainted(x, y)
-
+  override def isPainted(x:Int, y:Int, state:State):Boolean =
+    if (x < 0 || y < 0 || x >= sizeX || y >= sizeY) {
+      state.fail(GridLocationOutOfBounds)
+      false
+    } else {
+      isPainted(x, y)
+    }
+  
   def reset() {
     grid = new Array[Array[Square]](sizeX, sizeY)
   }
