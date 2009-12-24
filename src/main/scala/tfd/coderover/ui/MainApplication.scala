@@ -1,20 +1,15 @@
 package tfd.coderover.ui
 
-import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComponent, JComboBox, JLabel, JPanel, JProgressBar, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JOptionPane, JScrollPane, JSplitPane, JTextArea, JTextPane, JToolBar, Scrollable, SwingWorker}
+import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComboBox, JLabel, JOptionPane, JPanel, JProgressBar, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JScrollPane, JSplitPane, JTextPane, JToolBar}
 import javax.swing.filechooser.{FileNameExtensionFilter}
-import java.awt.{BorderLayout, Color, Dimension, EventQueue, FlowLayout, GridBagLayout, GridBagConstraints, Font, Graphics, Graphics2D, Rectangle}
+import java.awt.{BorderLayout, Color, Dimension, GridBagLayout, GridBagConstraints, Font, Rectangle}
 import java.awt.event.{ActionEvent, ItemListener, ItemEvent}
-import java.awt.image.{BufferedImage}
 import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter}
 
-import edu.umd.cs.piccolo.{PCanvas, PNode}
-import edu.umd.cs.piccolo.nodes.{PImage, PText}
-
-import _root_.tfd.coderover.{Environment, Instruction, State, LanguageParser, Evaluator}
+import _root_.tfd.coderover.{State, LanguageParser, Evaluator}
 import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 import _root_.tfd.gui.swing.codesyntaxpane.CodeSyntaxDocument
 
-import Math._
 import javax.swing.text.{StyleConstants, SimpleAttributeSet, AttributeSet, DefaultStyledDocument}
 
 class MainApplication {
@@ -31,6 +26,8 @@ class MainApplication {
   private var viewController:GUIViewController = _
    
   private var evaluator:Evaluator = _
+
+  private val languageParser = new LanguageParser()
    	
   private val codeFont = new Font("Courier", Font.BOLD, 12)
 
@@ -198,7 +195,7 @@ class MainApplication {
       
  		override def doRun() {
     		viewController.reset()
-    		val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
+    		val parseResult = languageParser.parse(codeText.getText.toUpperCase)
  			onEDTLater(consoleTextAppend(parseResult.toString, blueTextAttribute))
  			if (parseResult.successful) {
  				var scenarioIndex = 0
@@ -239,7 +236,7 @@ class MainApplication {
     private class RunWorker extends BaseRunWorker {
  		override def doRun() {
  			viewController.reset()
- 			val parseResult = LanguageParser.parse(codeText.getText.toUpperCase)
+ 			val parseResult = languageParser.parse(codeText.getText.toUpperCase)
  			onEDTLater(consoleTextAppend(parseResult.toString, blueTextAttribute))
  			if (parseResult.successful) {
  				currentState = currentScenario.createStartState
