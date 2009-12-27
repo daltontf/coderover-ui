@@ -40,7 +40,7 @@ class MainApplication {
 
   lazy private val blueTextAttribute = {
     val attributeSet = new SimpleAttributeSet
-    StyleConstants.setForeground(attributeSet, Color.BLUE)
+    StyleConstants.setForeground(attributeSet, Color.BLUE.darker)
     attributeSet
   }
 
@@ -391,6 +391,3 @@ class MainApplication {
 
     frame.setVisible(true)
 }
-
-
-

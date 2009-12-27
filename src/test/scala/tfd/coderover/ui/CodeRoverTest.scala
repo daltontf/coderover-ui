@@ -1,133 +1,46 @@
 package tfd.coderover.ui
 
-import org.junit._
-import org.junit.Assert._
+import org.fest.swing.fixture.FrameFixture
+import org.fest.swing.launcher.ApplicationLauncher
+import junit.framework.TestCase
+import org.fest.swing.finder.WindowFinder
+import java.awt.{Component, EventQueue}
+import org.fest.swing.core.{BasicRobot, GenericTypeMatcher}
+import reflect.Manifest
+import javax.swing.{JTextPane, JComponent, JButton, JFrame}
 
-import java.awt.{Component, Container}
+class CodeRoverTest extends TestCase {
+  //import tfd.fest.scala.FestImplicits._
 
-import javax.swing._
+  def withToolTip[T <: JComponent](toolTip:String)(implicit m:Manifest[T]) = new GenericTypeMatcher[T](m.erasure.asInstanceOf[Class[T]]) {
+     override def isMatching(component:T) = {
+       toolTip == component.getToolTipText
+     }
+  }
 
-import java.util.concurrent.{Executors}
+  private var window:FrameFixture = _
 
-import org.netbeans.jemmy.{ComponentChooser, JemmyProperties, QueueTool}
-import org.netbeans.jemmy.operators._
+  override def setUp {
+    EventQueue.invokeLater(new Runnable() {
+      override def run() {
+        new MainApplication()
+      }
+    })
 
-class CodeRoverTest {
-	lazy val launchExecutor = Executors.newSingleThreadExecutor();
+    val robot = BasicRobot.robotWithCurrentAwtHierarchy()
 
-	@Before
-	def setUp() {
-		JemmyProperties.setCurrentTimeout("ComponentOperator.WaitComponentTimeout", 2000)
-	}
+    window = WindowFinder.findFrame(classOf[JFrame]).using(robot)    
+  }
 
-//	@After
-//	def tearDown() {
-//		var break = false
-//		while (!break) {
-//			try {
-//				val frame = JFrameOperator.findJFrame(new JFrameOperator.JFrameFinder())
-//				if (frame != null) {
-//					new JFrameOperator(frame).close()
-//				} else {
-//					break
-//				}
-//			} catch {
-//			case _ => break = true
-//			}
-//		}
-//		queueWait(1000)
-//	}
+   override def tearDown {
+    window.cleanUp
+  }
 
-	def queueWait(max: Long) {
-		val qt = new QueueTool()
-		val to = qt.getTimeouts().cloneThis()
-		to.setTimeout("QueueTool.WaitQueueEmptyTimeout", 2000)
-		qt.setTimeouts(to)
-		qt.waitEmpty(10)
-	}
-
-	def launchMain() {
-//		launchExecutor.execute(new Runnable() {
-//
-//			def run() {
-				  new MainApplication
-//			}
-//
-//		})
-	}
-
-	class LoanChooser[A <: java.awt.Component](clazz: Class[A], filter: A => Boolean) extends ComponentChooser {
-		override def checkComponent(component:Component) =
-			if (component.getClass.isAssignableFrom(clazz)) {
-				filter(component.asInstanceOf[A])
-			} else {
-				false
-			}
-
-		override def getDescription() = "Generic Finder using Loan Pattern"
-	}
-
-	def findJFrame(filter: JFrame => Boolean) =
-		new JFrameOperator(JFrameOperator.findJFrame(new LoanChooser(classOf[JFrame], filter)))
-
-	def findJButton(container:Container, filter: JButton => Boolean) = {
-		val button = JButtonOperator.findJButton(container, new LoanChooser(classOf[JButton], filter))
-		if (button == null) {
-		  fail("cannot find JButton with matching criteria")
-		}
-        new JButtonOperator(button)
-    }
-
-//    def findJButton(container:Container, toolTipText:String) = {
-//		val button = JButtonOperator.findJButton(container,
-//			new ComponentChooser() {
-//				override def checkComponent(component:Component) =
-//					if (component.getClass.isAssignableFrom(classOf[JButton])) {
-//						component.asInstanceOf[JButton].getToolTipText == toolTipText
-//					} else {
-//						false
-//					}
-//
-//				override def getDescription() = "JButton Finder using toolTipText"
-//			})
-//		if (button == null) {
-//		  fail("cannot find JButton with tooltip = '" + toolTipText + "'")
-//		}
-//		new JButtonOperator(button)
-//    }
-
-	def findJTextArea(frmOper:JFrameOperator, filter: JTextArea => Boolean) =
-		new JTextAreaOperator(JTextAreaOperator.findJTextArea(frmOper.getContentPane, new LoanChooser(classOf[JTextArea], filter)))
-
-	def toolTipTextEquals(toolTipText:String)(component:JComponent) = component.getToolTipText == toolTipText
-
-	implicit def jFrameOperator2Container(frmOper:JFrameOperator) = frmOper.getContentPane
-
-	@Test
-	def testMain() = {
-		launchMain()
-		queueWait(2000)
-
-		val frmOper = findJFrame(frm => frm.getTitle == "Code Rover")
-
-		val List(runButtonOper, runTaskButtonOper, stopButtonOper) =
-        List("Run all scenarios",
-        	 "Run for current scenario",
-             "Stop running program").map(toolTipText => findJButton(frmOper, toolTipTextEquals(toolTipText)))
-
-    val List(codeOper, consoleOper) =
-			  List("Enter code here",
-				     "Console messages").map(toolTipText => findJTextArea(frmOper, toolTipTextEquals(toolTipText)))
-
-		def runCodeRover(code:String, parserOutput:String) = {
-			codeOper.setText("")
-			consoleOper.setText("")
-			codeOper.setText(code)
-			runButtonOper.clickMouse()
-			Thread.sleep(1000)
-			assertEquals(parserOutput, consoleOper.getText)
-		}
-
-		runCodeRover("", "[1.1] parsed: List()\nOnly Scenario - FAILED !!\n")
-   }
+  def testIt() {
+    window.button(withToolTip[JButton]("Run for current scenario")).click()
+    window.textBox(withToolTip[JTextPane]("Console messages")).requireText("[1.1] parsed: List()\r\nOnly Scenario - FAILED !!")
+    window.textBox(withToolTip[JTextPane]("Enter code here")).setText("FORWARD")
+    window.button(withToolTip[JButton]("Run for current scenario")).click()
+    window.textBox(withToolTip[JTextPane]("Console messages")).requireText("[1.8] parsed: List(Forward(Constant(1)))")
+  }
 }
