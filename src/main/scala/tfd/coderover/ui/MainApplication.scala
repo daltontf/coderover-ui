@@ -1,16 +1,20 @@
 package tfd.coderover.ui
 
-import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComboBox, JLabel, JOptionPane, JPanel, JProgressBar, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JScrollPane, JSplitPane, JTextPane, JToolBar}
-import javax.swing.filechooser.{FileNameExtensionFilter}
 import java.awt.{BorderLayout, Color, Dimension, GridBagLayout, GridBagConstraints, Font, Rectangle}
 import java.awt.event.{ActionEvent, ItemListener, ItemEvent}
+
 import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter}
+
+import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComboBox, JLabel, JOptionPane, JPanel, JProgressBar, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JScrollPane, JSplitPane, JTextPane, JToolBar}
+import javax.swing.filechooser.{FileNameExtensionFilter}
+import javax.swing.text.{StyleConstants, SimpleAttributeSet, AttributeSet, DefaultStyledDocument}
 
 import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 import _root_.tfd.gui.swing.codesyntaxpane.CodeSyntaxDocument
 
-import javax.swing.text.{StyleConstants, SimpleAttributeSet, AttributeSet, DefaultStyledDocument}
-import tfd.coderover.{Instruction, State, LanguageParser, Evaluator}
+import _root_.tfd.coderover.{Instruction, State, LanguageParser, Evaluator}
+
+import tasks.{TaskManager, Scenario}
 
 class MainApplication {
   import edt._
@@ -53,7 +57,6 @@ class MainApplication {
   private val consoleText = new JTextPane();
   {   import consoleText._
     setEditable(false)
-    //setLineWrap(true)
     setDocument(new DefaultStyledDocument())
     setToolTipText("Console messages")
     setFont(codeFont)
@@ -198,28 +201,24 @@ class MainApplication {
     }
 
     override def run() {
-      try {
-        onEDTWait {
+      onEDTWait {
           consoleText.setText("")
           consoleText.scrollRectToVisible(new Rectangle(0,0,1,1))
           runAction.setEnabled(false)
           runTaskAction.setEnabled(false)
           scenarioCombo.setEnabled(false)
           stopAction.setEnabled(true)
-        }
-        try {
-          doRun()
-        } finally {
-          viewController.canvas.repaint()
-          onEDTLater {
-            runAction.setEnabled(true)
-            runTaskAction.setEnabled(true)
-            scenarioCombo.setEnabled(true)
-            stopAction.setEnabled(false)
-          }  
-        }
-      } catch {
-        case ex:Exception => ex.printStackTrace(System.err)
+      }
+      try {
+        doRun()
+      } finally {
+         viewController.canvas.repaint()
+         onEDTLater {
+           runAction.setEnabled(true)
+           runTaskAction.setEnabled(true)
+           scenarioCombo.setEnabled(true)
+           stopAction.setEnabled(false)
+         }
       }
     }
   }

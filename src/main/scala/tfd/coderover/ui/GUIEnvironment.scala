@@ -1,6 +1,6 @@
 package tfd.coderover.ui
 
-import _root_.tfd.coderover.{Environment, State}
+import _root_.tfd.coderover.{GridLocationOutOfBounds, Environment, State}
 
 class GUIEnvironment(sizeX:Int, sizeY:Int, val targetLocation:Option[(Int,Int)]) extends Environment(sizeX, sizeY) {
   def this(sizeX:Int, sizeY:Int) = this(sizeX, sizeY, None)	

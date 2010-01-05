@@ -1,20 +1,14 @@
-package tfd.coderover.ui
+package tfd.coderover.ui.tasks
 
 import tfd.coderover.{Abend, Environment, State}
+import tfd.coderover.ui.GUIEnvironment
 
 abstract class Task(val title:String, val description:String, val scenarios:Scenario*) {
-  val taskState = new TaskState
-  
   def stateIsComplete(environment:Environment, state:State):Boolean
   
   def createNewEnvironment():GUIEnvironment
   
   override def toString() = title
-}
-
-class TaskState {
-  val taskIsComplete = false
-  val code = ""
 }
 
 object SimpleTask extends Task("Simple Task", 

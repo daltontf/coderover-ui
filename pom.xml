@@ -80,11 +80,13 @@
             <groupId>tfd.fest.scala</groupId>
             <artifactId>festscala</artifactId>
             <version>0.0.1-SNAPSHOT</version>
+             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>tfd.festext</groupId>
             <artifactId>festext</artifactId>
             <version>0.0.1-SNAPSHOT</version>
+             <scope>test</scope>
         </dependency>
     </dependencies>
 
