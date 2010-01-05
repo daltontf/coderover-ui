@@ -20,7 +20,7 @@ object SimpleTask extends Task("Simple Task",
     case _ => false
   }
   
-  def createNewEnvironment() = new GUIEnvironment(10, 10, Some(8,8))
+  def createNewEnvironment() = new GUIEnvironment(10, 10, Set((1,1)), Some(8,8))
 }
 
 object Goto55Task extends Task("Goto 5,5",

@@ -2,8 +2,10 @@ package tfd.coderover.ui
 
 import _root_.tfd.coderover.{GridLocationOutOfBounds, Environment, State}
 
-class GUIEnvironment(sizeX:Int, sizeY:Int, val targetLocation:Option[(Int,Int)]) extends Environment(sizeX, sizeY) {
-  def this(sizeX:Int, sizeY:Int) = this(sizeX, sizeY, None)	
+class GUIEnvironment(sizeX:Int, sizeY:Int, obstructed:Set[(Int,Int)], val targetLocation:Option[(Int,Int)]) extends Environment(sizeX, sizeY, obstructed) {
+  def this(sizeX:Int, sizeY:Int) = this(sizeX, sizeY, Set.empty[(Int,Int)], None)
+
+  def this(sizeX:Int, sizeY:Int, targetLocation:Option[(Int,Int)]) = this(sizeX, sizeY, Set.empty[(Int,Int)], targetLocation)	
 
   private class Square {
 	  var painted = false

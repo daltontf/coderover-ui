@@ -7,7 +7,7 @@ import java.awt.geom.AffineTransform
 import edu.umd.cs.piccolo.PCanvas;
 import edu.umd.cs.piccolo.nodes.PImage;
 
-import tfd.coderover.{Controller, DefaultConstraints}
+import _root_.tfd.coderover.{Controller, DefaultConstraints, State}
 
 class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) extends Controller(environment, DefaultConstraints) {
 	private var transform:AffineTransform = _
@@ -26,20 +26,20 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
             g.drawLine(fourFifths, fourFifths, oneHalf, oneFifth)
   }))
    
- private val layer = canvas.getLayer()
+  private val layer = canvas.getLayer()
   
   private def executeAnimation(duration:Int) {
 		robot.animateToTransform(transform, duration ) 
 		Thread.sleep(duration)
 	}
   
-  def makePaintedImage(width:Int, height:Int, painter:Graphics => Unit) = {
+  private def makePaintedImage(width:Int, height:Int, painter:Graphics => Unit) = {
 		val image = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
     	painter(image.getGraphics)
     	image
   }
   
-  def buildBackground() = makePaintedImage(environment.sizeX * squareSize + 1, environment.sizeY * squareSize + 1, { g:Graphics => 
+  private def buildBackground() = makePaintedImage(environment.sizeX * squareSize + 1, environment.sizeY * squareSize + 1, { g:Graphics =>
 	    	g.setColor(Color.BLACK)
 	    
         for (i <- 0 to environment.sizeX) {
@@ -90,6 +90,9 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
       if (environment.isPainted(x,y)) {
         renderPaint(Color.YELLOW, x, y)
       }
+    environment.obstructed.foreach { square =>
+      renderPaint(Color.BLACK, square._1, square._2)
+    }
   }
 
   override def moveForward(state:State) = {
@@ -120,5 +123,6 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
   layer.addChild(background)
   canvas.setPanEventHandler(null);
   syncEnvironment()
+
   background.addChild(robot)
 }
