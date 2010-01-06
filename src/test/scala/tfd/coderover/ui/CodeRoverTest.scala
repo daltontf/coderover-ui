@@ -29,7 +29,8 @@ class CodeRoverTest extends TestCase {
 
     val robot = BasicRobot.robotWithCurrentAwtHierarchy()
 
-    window = WindowFinder.findFrame(classOf[JFrame]).using(robot)    
+    window = WindowFinder.findFrame(classOf[JFrame]).using(robot) 
+    window.target.toFront()
   }
 
    override def tearDown {
