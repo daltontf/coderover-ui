@@ -158,7 +158,7 @@ class MainApplication {
 
     protected class TaskCompletionStatus() {
       val stopped = currentState.stopped
-      val complete = TaskManager.currentTask.stateIsComplete(currentEnvironment, currentState)
+      val complete = TaskManager.currentTask.isComplete(currentEnvironment, currentState)
       private[this] val sb = new StringBuffer()
       sb.append(currentScenario)
       sb.append(" - ")
@@ -194,6 +194,7 @@ class MainApplication {
     def runCurrentTask(parseResult:languageParser.ParseResult[List[Instruction]]) = {
       currentState = currentScenario.createStartState
       viewController.syncToState(currentState)
+      viewController.syncEnvironment()
       evaluator.evaluate(parseResult.get, currentState)
       val taskCompletionStatus = new TaskCompletionStatus()
       consoleTextAppendOnEDT(taskCompletionStatus)
@@ -235,7 +236,6 @@ class MainApplication {
         while (scenarioIndex < TaskManager.currentTask.scenarios.length && !failed) {
           onEDTWait {
             scenarioCombo.setSelectedIndex(scenarioIndex)
-            viewController.syncEnvironment()
           }
           val taskCompletionStatus = runCurrentTask(parseResult)
           failed = taskCompletionStatus.failed
@@ -299,10 +299,9 @@ class MainApplication {
   private val taskLabel = new JLabel()
   private val scenarioCombo = new JComboBox()
 
-  def updateTaskAndScenarios() {
-    taskLabel.setText(TaskManager.currentTask.toString)
-    currentEnvironment = TaskManager.currentTask.createNewEnvironment
-    currentScenario = TaskManager.currentTask.scenarios(0)
+  def updateCurrentScenario(scenario:Scenario) {
+    currentScenario = scenario
+    currentEnvironment = currentScenario.environmentFactory()
     viewController = new GUIViewController(50, currentEnvironment) {
       override def print(value:String) = onEDTLater {
         consoleTextAppend(value, null)
@@ -313,17 +312,23 @@ class MainApplication {
     viewController.syncEnvironment()
     gridPane.setViewportView(viewController.canvas);
     evaluator = new Evaluator(currentEnvironment, viewController)
+  }
+
+  def updateTaskAndScenarios() {
+    taskLabel.setText(TaskManager.currentTask.toString)
+    updateCurrentScenario(TaskManager.currentTask.scenarios(0))
     scenarioCombo.setModel(new DefaultComboBoxModel(TaskManager.currentTask.scenarios.toArray.asInstanceOf[Array[Object]]))
     scenarioCombo.addItemListener(new ItemListener() {
       override def itemStateChanged(ie:ItemEvent) {
-        currentScenario = ie.getItem().asInstanceOf[Scenario]
-        currentState = currentScenario.createStartState
-        viewController.syncToState(currentState)
+        if (ie.getStateChange == ItemEvent.SELECTED) {
+          updateCurrentScenario(ie.getItem().asInstanceOf[Scenario])
+        }
       }
     })
   }
 
   private val contentPane = frame.getContentPane
+
   private val toolBar = new JToolBar; {
     import toolBar._
 
@@ -360,8 +365,6 @@ class MainApplication {
 
   private val gridPane = new JScrollPane()
 
-  updateTaskAndScenarios()
-
   private[this] val codeCanvasPane = new JSplitPane(
     JSplitPane.HORIZONTAL_SPLIT,
     new JScrollPane(codeText),
@@ -385,6 +388,8 @@ class MainApplication {
 
   frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
   frame.pack
+
+  updateTaskAndScenarios()
 
   frame.setVisible(true)
 }

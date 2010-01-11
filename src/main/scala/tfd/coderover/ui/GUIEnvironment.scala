@@ -2,34 +2,25 @@ package tfd.coderover.ui
 
 import _root_.tfd.coderover.{GridLocationOutOfBounds, Environment, State}
 
-class GUIEnvironment(sizeX:Int, sizeY:Int, obstructed:Set[(Int,Int)], val targetLocation:Option[(Int,Int)]) extends Environment(sizeX, sizeY, obstructed) {
-  def this(sizeX:Int, sizeY:Int) = this(sizeX, sizeY, Set.empty[(Int,Int)], None)
+class GUIEnvironment(sizeX:Int, sizeY:Int, obstructed:Set[(Int,Int)], prePainted:Set[(Int,Int)], val targetLocation:Option[(Int,Int)]) extends Environment(sizeX, sizeY, obstructed) {
+  def this(sizeX:Int, sizeY:Int) = this(sizeX, sizeY, Set.empty[(Int,Int)], Set.empty[(Int,Int)], None)
 
-  def this(sizeX:Int, sizeY:Int, targetLocation:Option[(Int,Int)]) = this(sizeX, sizeY, Set.empty[(Int,Int)], targetLocation)	
+  def this(sizeX:Int, sizeY:Int, targetLocation:Option[(Int,Int)]) = this(sizeX, sizeY, Set.empty[(Int,Int)], Set.empty[(Int,Int)], targetLocation)
 
-  private class Square {
-	  var painted = false
-  }
-  
-  private var grid:Array[Array[Square]] = _
+  protected var painted:Array[Array[Boolean]] = _
 
   def paint(x:Int, y:Int) {
-    var square = grid(x)(y)
-	  if (square == null) {
-		  square = new Square()
-		  grid(x)(y) = square
-	  }
-	  square.painted = true
+    painted(x)(y) = true
   }
 
   override def paint(state:State) =  paint(state.gridX, state.gridY)
 
   def isPainted(x:Int, y:Int) = {
-    var square = grid(x)(y)
-    if (square == null) {
+    var value = painted(x)(y)
+    if (value == null) {
 		  false
 	  } else {
-	      square.painted
+	    value
 	  }
   }
 
@@ -42,7 +33,8 @@ class GUIEnvironment(sizeX:Int, sizeY:Int, obstructed:Set[(Int,Int)], val target
     }
   
   def reset() {
-    grid = new Array[Array[Square]](sizeX, sizeY)
+    painted = new Array[Array[Boolean]](sizeX, sizeY)
+    prePainted.foreach { tuple => paint(tuple._1, tuple._2) }
   }
 
   reset()
