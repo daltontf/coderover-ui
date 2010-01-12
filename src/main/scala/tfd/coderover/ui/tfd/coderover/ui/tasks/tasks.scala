@@ -12,7 +12,7 @@ abstract class Task(val title:String, val description:String) {
 }
 
 object SimpleTask extends Task("Simple Task", "Simple Task") {
-  val environmentFactory = { () => new GUIEnvironment(10, 10, Set((1,1)), Set.empty[(Int,Int)], Some(8,8)) }
+  val environmentFactory = { () => new GUIEnvironment(sizeX = 10, sizeY = 10, targetLocation = Some(8,8)) }
 
   scenarios = List(new BasicScenario(new State(2,2,1), "Only Scenario", environmentFactory))
 
@@ -25,7 +25,7 @@ object SimpleTask extends Task("Simple Task", "Simple Task") {
 
 object Goto55Task extends Task("Goto 5,5", "Goto 5,5") {
 
-  val environmentFactory = { () => new GUIEnvironment(10, 10, Some(5,5)) }
+  val environmentFactory = { () => new GUIEnvironment(sizeX = 10, sizeY = 10, targetLocation = Some(5,5)) }
 
   scenarios = List(new BasicScenario(new State(2,2,0), "Start at 2,2 - face up", environmentFactory),
                    new BasicScenario(new State(2,8,1), "Start at 2,8 - face left", environmentFactory),
@@ -43,11 +43,12 @@ object FollowTheYellowBrickRoad extends Task("Follow the Yellow Brick Road",
 {
   object MovedToUnpainted extends Abend("Moved to unpainted square")
 
-  val environmentFactory = { () => new GUIEnvironment(10, 10, Set.empty[(Int,Int)],
-    Set((2,2), (2,3), (3,3), (3,4), (3,5), (3,6), (2,6), (1,6), (1,7), (1,8), (2,8), (3,8),
-      (4,8), (5,8), (5,7), (5,6), (5,5), (5,4), (5,3), (5,2), (5,1), (6,1), (7,1), (8,1),
-      (9,1), (9,2), (9,3), (9,4), (8,4), (7,4), (7,5), (7,6), (8,6), (9,6), (9,7), (9,8),
-      (8,8)), Some(8,8)) {
+  val environmentFactory = { () => new GUIEnvironment(sizeX = 10, sizeY = 10,
+    prePainted = Set((2,2), (2,3), (3,3), (3,4), (3,5), (3,6), (2,6), (1,6), (1,7), (1,8),
+      (2,8), (3,8), (4,8), (5,8), (5,7), (5,6), (5,5), (5,4), (5,3), (5,2), (5,1), (6,1),
+      (7,1), (8,1), (9,1), (9,2), (9,3), (9,4), (8,4), (7,4), (7,5), (7,6), (8,6), (9,6),
+      (9,7), (9,8), (8,8)),
+    targetLocation = Some(8,8)) {
 
     override def  postMoveForward(state:State) {
       if (!isPainted(state.gridX, state.gridY)) {
@@ -68,8 +69,8 @@ object FollowTheYellowBrickRoad extends Task("Follow the Yellow Brick Road",
 object PaintTheTown extends Task("PaintTheTown", "Paint every accessible square")
 {
   scenarios = List(
-    new BasicScenario(new State(1,1,0), "Scenario 1", () => new GUIEnvironment(5, 5, Set((2,2)), Set.empty[(Int,Int)], None)),
-    new BasicScenario(new State(3,3,0), "Scenario 2", () => new GUIEnvironment(5, 5, Set((1,2),(2,2),(3,2),(2,1),(2,3)), Set.empty[(Int,Int)], None))
+    new BasicScenario(new State(1,1,0), "Scenario 1", () => new GUIEnvironment(sizeX = 5, sizeY = 5, obstructed = Set((2,2)))),
+    new BasicScenario(new State(3,3,0), "Scenario 2", () => new GUIEnvironment(sizeX = 5, sizeY = 5, obstructed = Set((1,2),(2,2),(3,2),(2,1),(2,3))))
   )
 
   def isComplete(environment:GUIEnvironment, state:State):Boolean = {
