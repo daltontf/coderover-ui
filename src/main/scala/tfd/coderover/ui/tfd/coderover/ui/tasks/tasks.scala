@@ -38,6 +38,41 @@ object Goto55Task extends Task("Goto 5,5", "Goto 5,5") {
   }
 }
 
+object MineField extends Task("Goto 5,5 in Minefield", "Goto 5,5") {
+
+  object DetonatedLandMine extends Abend("Detonated a land mine")
+
+  val environmentFactory = { () => new GUIEnvironment(
+    sizeX = 10,
+    sizeY = 10,
+    targetLocation = Some(5,5),
+    hiddenEntities = Map("MINE" -> Set((3,3)))) {
+
+      override def  postMoveForward(state:State) {
+        if (hiddenEntities.getOrElse("MINE", Set.empty).contains((state.gridX, state.gridY))) {
+          state.fail(DetonatedLandMine)
+        }
+    }
+    }
+  }
+
+  scenarios = List(new BasicScenario(new State(2,2,0), "Start at 2,2 - face up", environmentFactory))
+
+  def isComplete(environment:GUIEnvironment, state:State) = state match {
+    case State(5,5,_) => true
+    case _ => false
+  }
+}
+
+object GotoFlag extends Task("Goto Flag", "Goto Flag") {
+  scenarios = List(
+    new BasicScenario(new State(7,2,0), "Start at 7,2 - face up", { () => new GUIEnvironment(sizeX = 10, sizeY = 10, visibleEntities = Map("FLAG" -> Set((3,8)))) }),
+    new BasicScenario(new State(2,7,0), "Start at 7,2 - face down", { () => new GUIEnvironment(sizeX = 10, sizeY = 10, visibleEntities = Map("FLAG" -> Set((0,0)))) })
+  )
+
+  def isComplete(environment:GUIEnvironment, state:State) = environment.visibleEntities("FLAG").contains((state.gridX, state.gridY))
+}
+
 object FollowTheYellowBrickRoad extends Task("Follow the Yellow Brick Road",
   "Navigate to destination touching only yellow ")
 {
@@ -84,21 +119,21 @@ object PaintTheTown extends Task("PaintTheTown", "Paint every accessible square"
   }
 }
 
-object TaskManager {
-  private val task:Array[Task] = Array(SimpleTask, Goto55Task, FollowTheYellowBrickRoad, PaintTheTown)
+class TaskManager(tasks:Task*) {
+  private val taskArray:Array[Task] = tasks.toArray 
   private var currentTaskIndex = 0
 
   var allTasksComplete = false
 
   def nextTask() {
-    if (currentTaskIndex < task.length - 1) {
+    if (currentTaskIndex < tasks.length - 1) {
       currentTaskIndex += 1
     } else {
       allTasksComplete = true
     }
   }
 
-  def currentTask = task(currentTaskIndex)
+  def currentTask = tasks(currentTaskIndex)
 }
 
 abstract class Scenario(val description:String, val environmentFactory:() => GUIEnvironment) {

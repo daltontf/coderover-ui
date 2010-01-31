@@ -11,18 +11,19 @@ import javax.swing.text.{StyleConstants, SimpleAttributeSet, AttributeSet, Defau
 
 import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 import _root_.tfd.gui.swing.codesyntaxpane.CodeSyntaxDocument
+import _root_.tfd.scala.properties.{HasBindableProperties}
 
 import _root_.tfd.coderover.{Instruction, State, LanguageParser, Evaluator}
 
 import tasks.{TaskManager, Scenario}
 
-class MainApplication {
+class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
   import edt._
 
   private var currentFile:File = _
 
-  private var currentScenario:Scenario = _
-
+  private val currentScenario = BindableProperty[Scenario]("currentScenario", null)
+  
   private var currentState:State = _
 
   private var currentEnvironment:GUIEnvironment = _
@@ -148,7 +149,7 @@ class MainApplication {
     override def actionPerformed(ae:ActionEvent) {
       progressBar.setValue(0)
       progressBar.setMinimum(0)
-      progressBar.setMaximum(TaskManager.currentTask.scenarios.length)
+      progressBar.setMaximum(taskManager.currentTask.scenarios.length)
       progressBar.setForeground(Color.GREEN)
       new Thread(new RunTaskWorker()).start
     }
@@ -158,9 +159,9 @@ class MainApplication {
 
     protected class TaskCompletionStatus() {
       val stopped = currentState.stopped
-      val complete = TaskManager.currentTask.isComplete(currentEnvironment, currentState)
+      val complete = taskManager.currentTask.isComplete(currentEnvironment, currentState)
       private[this] val sb = new StringBuffer()
-      sb.append(currentScenario)
+      sb.append(currentScenario.get)
       sb.append(" - ")
       sb.append(
         if (stopped) {
@@ -192,7 +193,7 @@ class MainApplication {
     }
 
     def runCurrentTask(parseResult:languageParser.ParseResult[List[Instruction]]) = {
-      currentState = currentScenario.createStartState
+      currentState = currentScenario.get.createStartState
       viewController.syncToState(currentState)
       viewController.syncEnvironment()
       evaluator.evaluate(parseResult.get, currentState)
@@ -233,7 +234,7 @@ class MainApplication {
       if (parseResult.successful) {
         var scenarioIndex = 0
         var failed = false
-        while (scenarioIndex < TaskManager.currentTask.scenarios.length && !failed) {
+        while (scenarioIndex < taskManager.currentTask.scenarios.length && !failed) {
           onEDTWait {
             scenarioCombo.setSelectedIndex(scenarioIndex)
           }
@@ -248,7 +249,7 @@ class MainApplication {
           }
         }
         if (!failed) {
-           TaskManager.nextTask()
+           taskManager.nextTask()
            updateTaskAndScenarios()
         }
       }
@@ -299,15 +300,14 @@ class MainApplication {
   private val taskLabel = new JLabel()
   private val scenarioCombo = new JComboBox()
 
-  def updateCurrentScenario(scenario:Scenario) {
-    currentScenario = scenario
-    currentEnvironment = currentScenario.environmentFactory()
+  currentScenario.onChange { scenario =>
+    currentEnvironment = scenario.environmentFactory()
     viewController = new GUIViewController(50, currentEnvironment) {
       override def print(value:String) = onEDTLater {
         consoleTextAppend(value, null)
       }
     }
-    currentState = currentScenario.createStartState()
+    currentState = scenario.createStartState()
     viewController.syncToState(currentState)
     viewController.syncEnvironment()
     gridPane.setViewportView(viewController.canvas);
@@ -315,13 +315,13 @@ class MainApplication {
   }
 
   def updateTaskAndScenarios() {
-    taskLabel.setText(TaskManager.currentTask.toString)
-    updateCurrentScenario(TaskManager.currentTask.scenarios(0))
-    scenarioCombo.setModel(new DefaultComboBoxModel(TaskManager.currentTask.scenarios.toArray.asInstanceOf[Array[Object]]))
+    taskLabel.setText(taskManager.currentTask.toString)
+    currentScenario.set(taskManager.currentTask.scenarios(0))
+    scenarioCombo.setModel(new DefaultComboBoxModel(taskManager.currentTask.scenarios.toArray.asInstanceOf[Array[Object]]))
     scenarioCombo.addItemListener(new ItemListener() {
       override def itemStateChanged(ie:ItemEvent) {
         if (ie.getStateChange == ItemEvent.SELECTED) {
-          updateCurrentScenario(ie.getItem().asInstanceOf[Scenario])
+           currentScenario.set(ie.getItem().asInstanceOf[Scenario])
         }
       }
     })

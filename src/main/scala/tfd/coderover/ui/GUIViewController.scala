@@ -58,6 +58,9 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
     			      360);
       
     	}
+      environment.visibleEntities.getOrElse("FLAG", Set.empty).map {
+        case (x,y) => g.drawLine(x * squareSize, y * squareSize, (x+1) * squareSize , (y+1) * squareSize)
+      }
   	})
 
   private def drawBackground() {

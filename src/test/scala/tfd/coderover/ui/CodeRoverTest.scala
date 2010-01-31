@@ -1,13 +1,14 @@
 package tfd.coderover.ui
 
+import _root_.tfd.coderover.ui.tasks.{TaskManager, SimpleTask}
 import org.fest.swing.fixture.FrameFixture
 import org.fest.swing.launcher.ApplicationLauncher
 import junit.framework.TestCase
 import org.fest.swing.finder.WindowFinder
 import java.awt.{Component, EventQueue}
-import org.fest.swing.core.{BasicRobot, GenericTypeMatcher}
 import reflect.Manifest
 import javax.swing.{JTextPane, JComponent, JButton, JFrame}
+import org.fest.swing.core.{Robot, BasicRobot, GenericTypeMatcher}
 
 class CodeRoverTest extends TestCase {
   //import tfd.fest.scala.FestImplicits._
@@ -19,15 +20,16 @@ class CodeRoverTest extends TestCase {
   }
 
   private var window:FrameFixture = _
+  private var robot:Robot = _
 
   override def setUp {
     EventQueue.invokeLater(new Runnable() {
       override def run() {
-        new MainApplication()
+        new MainApplication(new TaskManager(SimpleTask))
       }
     })
 
-    val robot = BasicRobot.robotWithCurrentAwtHierarchy()
+    robot = BasicRobot.robotWithCurrentAwtHierarchy()
 
     window = WindowFinder.findFrame(classOf[JFrame]).using(robot) 
     window.target.toFront()

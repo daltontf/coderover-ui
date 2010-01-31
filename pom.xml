@@ -1,104 +1,115 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>tfd.coderover</groupId>
-	<artifactId>coderover-ui</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>tfd.coderover</groupId>
+    <artifactId>coderover-ui</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
 
-	<properties>
-		<scala.version>2.8.0-SNAPSHOT</scala.version>
+    <properties>
+        <scala.version>2.8.0.Beta1-RC2</scala.version>
         <main.class>tfd.coderover.ui.Main</main.class>
-	</properties>
+    </properties>
 
-	<repositories>
-		<repository>
-			<id>scala-tools.org</id>
-			<name>Scala-Tools Maven2 Snapshot Repository</name>
-			<url>http://scala-tools.org/repo-snapshots</url>
-		</repository>
+    <repositories>
         <repository>
-			<id>scala-tools.org</id>
-			<name>Scala-Tools Maven2 Release Repository</name>
-			<url>http://scala-tools.org/repo-releases</url>
-		</repository>
-		<repository>
-			<id>googlecode</id>
-			<name>daltontf-maven</name>
-			<url>http://daltontf-maven.googlecode.com/svn/repo</url>
-		</repository>
-	</repositories>
+            <id>scala-tools.org</id>
+            <name>Scala-Tools Maven2 Snapshot Repository</name>
+            <url>http://scala-tools.org/repo-snapshots</url>
+        </repository>
+        <repository>
+            <id>scala-tools.org</id>
+            <name>Scala-Tools Maven2 Release Repository</name>
+            <url>http://scala-tools.org/repo-releases</url>
+        </repository>
+        <repository>
+            <id>fest-swing</id>
+            <name>fest-swing</name>
+            <url>http://svn.codehaus.org/fest/m2/repo/fest/fest-swing</url>
+        </repository>
+        <repository>
+            <id>googlecode</id>
+            <name>daltontf-maven</name>
+            <url>http://daltontf-maven.googlecode.com/svn/repo</url>
+        </repository>
+    </repositories>
 
-	<pluginRepositories>
-		<pluginRepository>
-			<id>scala-tools.org</id>
-			<name>Scala-Tools Maven2 Repository</name>
-			<url>http://scala-tools.org/repo-releases</url>
-		</pluginRepository>
-	</pluginRepositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>scala-tools.org</id>
+            <name>Scala-Tools Maven2 Repository</name>
+            <url>http://scala-tools.org/repo-releases</url>
+        </pluginRepository>
+    </pluginRepositories>
 
-	<dependencies>
-		<dependency>
-			<groupId>org.scala-lang</groupId>
-			<artifactId>scala-library</artifactId>
-			<version>${scala.version}</version>
-		</dependency>
+    <dependencies>
         <dependency>
-			<groupId>org.scala-lang</groupId>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
             <artifactId>scala-compiler</artifactId>
-			<version>${scala.version}</version>
+            <version>${scala.version}</version>
             <scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.piccolo2d</groupId>
-			<artifactId>piccolo2d-core</artifactId>
-			<version>1.2.1</version>
-		</dependency>
-		<dependency>
-			<groupId>tfd.coderover</groupId>
-			<artifactId>coderover</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>tfd.gui.swing</groupId>
-			<artifactId>cut-copy-paste-popup</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>tfd.gui.swing.codesyntaxpane</groupId>
-  			<artifactId>codesyntaxpane</artifactId>
-  			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
-        
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.5</version>
-			<scope>test</scope>
-		</dependency>
+        </dependency>
         <dependency>
-            <groupId>fest</groupId>
-            <artifactId>fest-swing</artifactId>
-            <version>1.1</version>
+            <groupId>org.piccolo2d</groupId>
+            <artifactId>piccolo2d-core</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>tfd.coderover</groupId>
+            <artifactId>coderover</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>tfd.gui.swing</groupId>
+            <artifactId>cut-copy-paste-popup</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>tfd.gui.swing.codesyntaxpane</groupId>
+            <artifactId>codesyntaxpane</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>tfd.scala.properties</groupId>
+            <artifactId>scala-properties</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.5</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>tfd.fest.scala</groupId>
-            <artifactId>festscala</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-             <scope>test</scope>
+            <groupId>org.easytesting</groupId>
+            <artifactId>fest-swing</artifactId>
+            <version>1.2a3</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>tfd.festext</groupId>
-            <artifactId>festext</artifactId>
+            <groupId>tfd.fest</groupId>
+            <artifactId>fest-scala</artifactId>
             <version>0.0.1-SNAPSHOT</version>
-             <scope>test</scope>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>tfd.fest</groupId>
+            <artifactId>fest-ext</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
-	<build>
-		<sourceDirectory>src/main/scala</sourceDirectory>
-		<testSourceDirectory>src/test/scala</testSourceDirectory>
-		<plugins>
+    <build>
+        <sourceDirectory>src/main/scala</sourceDirectory>
+        <testSourceDirectory>src/test/scala</testSourceDirectory>
+        <plugins>
             <!-- plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
@@ -116,127 +127,127 @@
 					</execution>
 				</executions>
 			</plugin-->
-			<plugin>
-				<groupId>org.scala-tools</groupId>
-				<artifactId>maven-scala-plugin</artifactId>
-				<executions>
-					<execution>
-						<goals>
-							<goal>compile</goal>
-							<goal>testCompile</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<scalaVersion>${scala.version}</scalaVersion>
-					<args>
-						<arg>-target:jvm-1.5</arg>
-					</args>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-eclipse-plugin</artifactId>
-				<configuration>
-					<downloadSources>true</downloadSources>
-					<buildcommands>
-						<buildcommand>ch.epfl.lamp.sdt.core.scalabuilder</buildcommand>
-					</buildcommands>
-					<additionalProjectnatures>
-						<projectnature>ch.epfl.lamp.sdt.core.scalanature</projectnature>
-					</additionalProjectnatures>
-					<classpathContainers>
-						<classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
-						<classpathContainer>ch.epfl.lamp.sdt.launching.SCALA_CONTAINER</classpathContainer>
-					</classpathContainers>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<goals>
-							<goal>java</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<mainClass>${main.class}</mainClass>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<version>2.1</version>
-				<configuration>
-					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
-					</descriptorRefs>
-					<archive>
-						<manifest>
-							<mainClass>${main.class}</mainClass>
-						</manifest>
-					</archive>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>com.pyx4me</groupId>
-				<artifactId>proguard-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>proguard</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<libs>
-						<lib>${java.home}\lib\rt.jar</lib>
-						<lib>${java.home}\lib\jsse.jar</lib>
-					</libs>
-					<includeDependency>false</includeDependency>
-					<options>
-						<option>-dontnote</option>
-						<option>-dontwarn</option>
-						<option>-dontoptimize</option>
-						<option>-dontobfuscate</option>
-						<!-- option>-dontskipnonpubliclibraryclasses</option-->
-						<option>-dontskipnonpubliclibraryclassmembers</option>
-						<option>-allowaccessmodification</option>
-						<option>-keep class ${main.class} { public
-							static
-							void main(java.lang.String[]); }</option>
-					</options>
-					<maxMemory>768m</maxMemory>
-					<injar>${project.build.finalName}-jar-with-dependencies.jar</injar>
-					<outjar>${project.build.finalName}-small.jar</outjar>
-					<outputDirectory>${project.build.directory}</outputDirectory>
-					<addMavenDescriptor>false</addMavenDescriptor>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+            <plugin>
+                <groupId>org.scala-tools</groupId>
+                <artifactId>maven-scala-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <scalaVersion>${scala.version}</scalaVersion>
+                    <args>
+                        <arg>-target:jvm-1.5</arg>
+                    </args>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-eclipse-plugin</artifactId>
+                <configuration>
+                    <downloadSources>true</downloadSources>
+                    <buildcommands>
+                        <buildcommand>ch.epfl.lamp.sdt.core.scalabuilder</buildcommand>
+                    </buildcommands>
+                    <additionalProjectnatures>
+                        <projectnature>ch.epfl.lamp.sdt.core.scalanature</projectnature>
+                    </additionalProjectnatures>
+                    <classpathContainers>
+                        <classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
+                        <classpathContainer>ch.epfl.lamp.sdt.launching.SCALA_CONTAINER</classpathContainer>
+                    </classpathContainers>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>${main.class}</mainClass>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.1</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <mainClass>${main.class}</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.pyx4me</groupId>
+                <artifactId>proguard-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>proguard</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <libs>
+                        <lib>${java.home}\lib\rt.jar</lib>
+                        <lib>${java.home}\lib\jsse.jar</lib>
+                    </libs>
+                    <includeDependency>false</includeDependency>
+                    <options>
+                        <option>-dontnote</option>
+                        <option>-dontwarn</option>
+                        <option>-dontoptimize</option>
+                        <option>-dontobfuscate</option>
+                        <!-- option>-dontskipnonpubliclibraryclasses</option-->
+                        <option>-dontskipnonpubliclibraryclassmembers</option>
+                        <option>-allowaccessmodification</option>
+                        <option>-keep class ${main.class} { public
+                            static
+                            void main(java.lang.String[]); }</option>
+                    </options>
+                    <maxMemory>768m</maxMemory>
+                    <injar>${project.build.finalName}-jar-with-dependencies.jar</injar>
+                    <outjar>${project.build.finalName}-small.jar</outjar>
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+                    <addMavenDescriptor>false</addMavenDescriptor>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
-	<reporting>
-		<plugins>
-			<plugin>
-				<groupId>org.scala-tools</groupId>
-				<artifactId>maven-scala-plugin</artifactId>
-				<configuration>
-					<scalaVersion>${scala.version}</scalaVersion>
-				</configuration>
-			</plugin>
-		</plugins>
-	</reporting>
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.scala-tools</groupId>
+                <artifactId>maven-scala-plugin</artifactId>
+                <configuration>
+                    <scalaVersion>${scala.version}</scalaVersion>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
 </project>
