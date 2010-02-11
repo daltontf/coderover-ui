@@ -25,7 +25,6 @@ class GUIEnvironment(
 
   override def isPainted(x:Int, y:Int, state:State):Boolean =
     if (x < 0 || y < 0 || x >= sizeX || y >= sizeY) {
-      state.fail(GridLocationOutOfBounds)
       false
     } else {
       isPainted(x, y)

@@ -48,9 +48,11 @@ object MineField extends Task("Goto 5,5 in Minefield", "Goto 5,5") {
     targetLocation = Some(5,5),
     hiddenEntities = Map("MINE" -> Set((3,3)))) {
 
-      override def  postMoveForward(state:State) {
+      override def postMoveForward(state:State) = {
         if (hiddenEntities.getOrElse("MINE", Set.empty).contains((state.gridX, state.gridY))) {
-          state.fail(DetonatedLandMine)
+          Some(DetonatedLandMine)
+        } else {
+          None
         }
     }
     }
@@ -85,9 +87,11 @@ object FollowTheYellowBrickRoad extends Task("Follow the Yellow Brick Road",
       (9,7), (9,8), (8,8)),
     targetLocation = Some(8,8)) {
 
-    override def  postMoveForward(state:State) {
+    override def postMoveForward(state:State) = {
       if (!isPainted(state.gridX, state.gridY)) {
-        state.fail(MovedToUnpainted)
+        Some(MovedToUnpainted)
+      } else {
+        None
       }
     }
    }

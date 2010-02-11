@@ -9,7 +9,7 @@ import edu.umd.cs.piccolo.nodes.PImage;
 
 import _root_.tfd.coderover.{Controller, DefaultConstraints, State}
 
-class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) extends Controller(environment, DefaultConstraints) {
+class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) extends Controller(new State(0,0,0), environment, DefaultConstraints) {
 	private var transform:AffineTransform = _
       
 	private[ui] val canvas = new PCanvas()
@@ -75,12 +75,13 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
 		g.fillRect(x + 1, y + 1, squareSize-1, squareSize-1)
   }
 
-  override def paint(state:State) {
+  override def paint() {
     environment.paint(state)
     renderPaint(Color.YELLOW, state.gridX, state.gridY)
   }
 
   def syncToState(state:State) {
+    this.state = state
 		transform = new AffineTransform()
 		transform.translate(state.gridX * 50, state.gridY * 50)
 		transform.rotate(state.directionIndex * (java.lang.Math.PI/2), 25, 25)
@@ -98,20 +99,20 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
     }
   }
 
-  override def moveForward(state:State) = {
-	  super.moveForward(state)
+  override def executeMoveForward() = {
+	  super.executeMoveForward()
 	  transform.translate(0, -50)
-      executeAnimation(500)
+    executeAnimation(500)
 	}
  
-	override def turnRight(state:State) = {
-	  super.turnRight(state)
+	override def turnRight() = {
+	  super.turnRight()
 	  transform.rotate(java.lang.Math.PI/2, 25, 25)
 	  executeAnimation(1000)
     }
   
-	override def turnLeft(state:State) = {
-	  super.turnLeft(state)
+	override def turnLeft() = {
+	  super.turnLeft()
 	  transform.rotate(-java.lang.Math.PI/2, 25, 25)
 	  executeAnimation(1000)
 	}

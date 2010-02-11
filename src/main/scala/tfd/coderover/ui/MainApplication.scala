@@ -1,5 +1,6 @@
 package tfd.coderover.ui
 
+import _root_.tfd.coderover._
 import java.awt.{BorderLayout, Color, Dimension, GridBagLayout, GridBagConstraints, Font, Rectangle}
 import java.awt.event.{ActionEvent, ItemListener, ItemEvent}
 
@@ -12,8 +13,6 @@ import javax.swing.text.{StyleConstants, SimpleAttributeSet, AttributeSet, Defau
 import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 import _root_.tfd.gui.swing.codesyntaxpane.CodeSyntaxDocument
 import _root_.tfd.scala.properties.{HasBindableProperties}
-
-import _root_.tfd.coderover.{Instruction, State, LanguageParser, Evaluator}
 
 import tasks.{TaskManager, Scenario}
 
@@ -30,7 +29,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
 
   private var viewController:GUIViewController = _
 
-  private var evaluator:Evaluator = _
+  private var evaluator:Evaluator = new Evaluator()
 
   private val languageParser = new LanguageParser()
 
@@ -77,7 +76,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
 
   private lazy val newAction = new AbstractAction("New") {
     override def actionPerformed(ae:ActionEvent) {
-      currentState.stopped = true
+      viewController.stopped = true
       codeText.setText("")
     }
   }
@@ -89,7 +88,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
       if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
         val file = chooser.getSelectedFile
         if (file.exists) {
-          currentState.stopped = true
+          viewController.stopped = true
           new Thread(new Runnable() {
             override def run() = {
               val reader = new BufferedReader(new FileReader(file))
@@ -157,23 +156,24 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
 
   abstract private class BaseRunWorker extends Runnable {
 
-    protected class TaskCompletionStatus() {
-      val stopped = currentState.stopped
+    protected class TaskCompletionStatus(evaluationResult:ResultOrAbend[Unit]) {
+      val stopped = viewController.stopped
       val complete = taskManager.currentTask.isComplete(currentEnvironment, currentState)
       private[this] val sb = new StringBuffer()
       sb.append(currentScenario.get)
       sb.append(" - ")
       sb.append(
         if (stopped) {
-          currentState.abend match {
-            case Some(abend) => abend.message
-            case None => "Stopped by user"
-          }
+          "Stopped by user"
         } else {
-          if (complete) {
-            "SUCCESS !!"
+          if (evaluationResult.abend == None) {
+            if (complete) {
+              "SUCCESS !!"
+            } else {
+              "FAILED !!"
+            }
           } else {
-            "FAILED !!"
+            evaluationResult.abend.get.message
           }
         }
         )
@@ -196,8 +196,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
       currentState = currentScenario.get.createStartState
       viewController.syncToState(currentState)
       viewController.syncEnvironment()
-      evaluator.evaluate(parseResult.get, currentState)
-      val taskCompletionStatus = new TaskCompletionStatus()
+      val taskCompletionStatus = new TaskCompletionStatus(evaluator.evaluate(parseResult.get, viewController))
       consoleTextAppendOnEDT(taskCompletionStatus)
       taskCompletionStatus
     }
@@ -272,7 +271,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
     setEnabled(false)
 
     override def actionPerformed(ae:ActionEvent) {
-      currentState.stopped = true
+      viewController.stopped = true
     }
   }
 
@@ -311,7 +310,6 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
     viewController.syncToState(currentState)
     viewController.syncEnvironment()
     gridPane.setViewportView(viewController.canvas);
-    evaluator = new Evaluator(currentEnvironment, viewController)
   }
 
   def updateTaskAndScenarios() {
