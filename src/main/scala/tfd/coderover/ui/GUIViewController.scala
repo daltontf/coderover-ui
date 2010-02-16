@@ -12,11 +12,11 @@ import _root_.tfd.coderover.{Controller, DefaultConstraints, State}
 class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) extends Controller(new State(0,0,0), environment, DefaultConstraints) {
 	private var transform:AffineTransform = _
       
-	private[ui] val canvas = new PCanvas()
+	private val canvas = new PCanvas()
 
   private val background = new PImage()
 
-  val robot = new PImage(makePaintedImage(squareSize,squareSize, { g:Graphics =>
+  private val robot = new PImage(makePaintedImage(squareSize,squareSize, { g:Graphics =>
         	g.setColor(Color.RED)
         	val oneHalf = squareSize/2;
         	val oneFifth = squareSize/5;
@@ -26,8 +26,7 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
             g.drawLine(fourFifths, fourFifths, oneHalf, oneFifth)
   }))
    
-  private val layer = canvas.getLayer()
-  
+
   private def executeAnimation(duration:Int) {
 		robot.animateToTransform(transform, duration ) 
 		Thread.sleep(duration)
@@ -80,8 +79,8 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
     renderPaint(Color.YELLOW, state.gridX, state.gridY)
   }
 
-  def syncToState(state:State) {
-    this.state = state
+  def syncToState(newState:State) {
+    state.setEqual(newState)
 		transform = new AffineTransform()
 		transform.translate(state.gridX * 50, state.gridY * 50)
 		transform.rotate(state.directionIndex * (java.lang.Math.PI/2), 25, 25)
@@ -122,9 +121,15 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
     resetCallStack()
   }
 
+  def getView():java.awt.Component = canvas
+
+  def repaint() {
+    canvas.repaint()
+  }
+
   canvas.setPreferredSize(new Dimension(environment.sizeX * squareSize, environment.sizeY * squareSize)) 
   drawBackground()
-  layer.addChild(background)
+  canvas.getLayer.addChild(background)
   canvas.setPanEventHandler(null);
   syncEnvironment()
 

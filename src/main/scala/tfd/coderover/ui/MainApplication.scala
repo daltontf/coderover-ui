@@ -21,7 +21,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
 
   private var currentFile:File = _
 
-  private val currentScenario = BindableProperty[Scenario]("currentScenario", null)
+  private val currentScenarioProperty = BindableProperty[Scenario]("currentScenario", null)
   
   private var currentState:State = _
 
@@ -160,7 +160,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
       val stopped = viewController.stopped
       val complete = taskManager.currentTask.isComplete(currentEnvironment, currentState)
       private[this] val sb = new StringBuffer()
-      sb.append(currentScenario.get)
+      sb.append(currentScenarioProperty.get)
       sb.append(" - ")
       sb.append(
         if (stopped) {
@@ -178,7 +178,6 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
         }
         )
       val message = sb.toString
-
       val failed = (stopped || !complete)
     }
 
@@ -193,7 +192,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
     }
 
     def runCurrentTask(parseResult:languageParser.ParseResult[List[Instruction]]) = {
-      currentState = currentScenario.get.createStartState
+      currentState = currentScenarioProperty.get.createStartState()
       viewController.syncToState(currentState)
       viewController.syncEnvironment()
       val taskCompletionStatus = new TaskCompletionStatus(evaluator.evaluate(parseResult.get, viewController))
@@ -213,7 +212,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
       try {
         doRun()
       } finally {
-         viewController.canvas.repaint()
+         viewController.repaint()
          onEDTLater {
            runAction.setEnabled(true)
            runTaskAction.setEnabled(true)
@@ -299,8 +298,8 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
   private val taskLabel = new JLabel()
   private val scenarioCombo = new JComboBox()
 
-  currentScenario.onChange { scenario =>
-    currentEnvironment = scenario.environmentFactory()
+  currentScenarioProperty.onChange { scenario =>
+    currentEnvironment = scenario.createStartEnvironment()
     viewController = new GUIViewController(50, currentEnvironment) {
       override def print(value:String) = onEDTLater {
         consoleTextAppend(value, null)
@@ -309,17 +308,17 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
     currentState = scenario.createStartState()
     viewController.syncToState(currentState)
     viewController.syncEnvironment()
-    gridPane.setViewportView(viewController.canvas);
+    gridPane.setViewportView(viewController.getView);
   }
 
   def updateTaskAndScenarios() {
     taskLabel.setText(taskManager.currentTask.toString)
-    currentScenario.set(taskManager.currentTask.scenarios(0))
+    currentScenarioProperty.set(taskManager.currentTask.scenarios(0))
     scenarioCombo.setModel(new DefaultComboBoxModel(taskManager.currentTask.scenarios.toArray.asInstanceOf[Array[Object]]))
     scenarioCombo.addItemListener(new ItemListener() {
       override def itemStateChanged(ie:ItemEvent) {
         if (ie.getStateChange == ItemEvent.SELECTED) {
-           currentScenario.set(ie.getItem().asInstanceOf[Scenario])
+           currentScenarioProperty.set(ie.getItem().asInstanceOf[Scenario])
         }
       }
     })
