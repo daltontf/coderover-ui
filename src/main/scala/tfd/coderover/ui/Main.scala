@@ -8,6 +8,6 @@ import com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel
 object Main {
 	def main(args:Array[String]) {
      //UIManager.setLookAndFeel(new NimbusLookAndFeel)
-		 new MainApplication(new TaskManager(PaintTheTown, GotoFlag, MineField, SimpleTask, Goto55Task, FollowTheYellowBrickRoad, PaintTheTown))
+		 new MainApplication(new TaskManager(GotoFlag, MineField, SimpleTask, Goto55Task, FollowTheYellowBrickRoad, PaintTheTown))
   	}
 }
