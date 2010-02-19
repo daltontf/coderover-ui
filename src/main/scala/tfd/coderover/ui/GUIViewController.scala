@@ -16,7 +16,7 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
 
   private val background = new PImage()
 
-  private val robot = new PImage(makePaintedImage(squareSize,squareSize, { g:Graphics =>
+  private val robot = new PImage(makePaintedImage(squareSize, squareSize, { g:Graphics =>
         	g.setColor(Color.RED)
         	val oneHalf = squareSize/2;
         	val oneFifth = squareSize/5;
@@ -47,19 +47,6 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
     	for (i <- 0 to environment.sizeY) {
         	g.drawLine(0, i * squareSize, environment.sizeY * squareSize - 1, i * squareSize)
         }
-    	if (environment.targetLocation != None) {
-    		val coordinates = environment.targetLocation.get
-    		g.drawArc(coordinates._1 * squareSize + 1, 
-    			      coordinates._2 * squareSize + 1,
-    			      squareSize - 2,
-    			      squareSize - 2,
-    			      0,
-    			      360);
-      
-    	}
-      environment.visibleEntities.getOrElse("FLAG", Set.empty).map {
-        case (x,y) => g.drawLine(x * squareSize, y * squareSize, (x+1) * squareSize , (y+1) * squareSize)
-      }
   	})
 
   private def drawBackground() {
@@ -129,11 +116,35 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
 
   def currentState() = state.copy()
 
+  private def placePImage(pImage:PImage, coordinates:(Int,Int)) {
+      val (x,y) = coordinates
+      transform = new AffineTransform()
+      transform.translate(x * squareSize, y * squareSize)
+      pImage.setTransform(transform)
+      background.addChild(pImage)
+  }
+
   canvas.setPreferredSize(new Dimension(environment.sizeX * squareSize, environment.sizeY * squareSize)) 
   drawBackground()
   canvas.getLayer.addChild(background)
   canvas.setPanEventHandler(null);
   syncEnvironment()
+
+  if (environment.targetLocation != None) {
+      placePImage(new PImage(makePaintedImage(squareSize, squareSize, { g:Graphics =>
+    		g.setColor(Color.BLUE)
+        g.drawArc(1, 1, squareSize - 2, squareSize - 2, 0, 360);
+      })), environment.targetLocation.get)
+  }
+
+  for (elements <- environment.visibleEntities.get("FLAG");
+       coordinates <- elements) {
+    placePImage(new PImage(makePaintedImage(squareSize, squareSize, { g:Graphics =>
+      g.setColor(Color.BLUE)
+      g.drawLine(0, 0, squareSize , squareSize)
+      g.drawLine(squareSize, 0, 0, squareSize)
+    })), coordinates)
+  }
 
   background.addChild(robot)
 }

@@ -67,7 +67,7 @@ object MineField extends Task("Goto 5,5 in Minefield", "Goto 5,5") {
 
 object GotoFlag extends Task("Goto Flag", "Goto Flag") {
   scenarios = List(
-    new Scenario("Start at 7,2 - face up", new State(7,2,0), new GUIEnvironment(sizeX = 10, sizeY = 10, visibleEntities = Map("FLAG" -> Set((3,8)))) ),
+    new Scenario("Start at 7,2 - face up", new State(7,2,0), new GUIEnvironment(sizeX = 10, sizeY = 10, visibleEntities = Map("FLAG" -> Set((3,8))))),
     new Scenario("Start at 7,2 - face down", new State(2,7,0), new GUIEnvironment(sizeX = 10, sizeY = 10, visibleEntities = Map("FLAG" -> Set((0,0)))) )
   )
 

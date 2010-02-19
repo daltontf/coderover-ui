@@ -89,7 +89,7 @@
         <dependency>
             <groupId>org.easytesting</groupId>
             <artifactId>fest-swing</artifactId>
-            <version>1.2a3</version>
+            <version>1.2a4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -97,12 +97,24 @@
             <artifactId>fest-scala</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                     <groupId>fest</groupId>
+                    <artifactId>fest-swing</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>tfd.fest</groupId>
             <artifactId>fest-ext</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                     <groupId>fest</groupId>
+                    <artifactId>fest-swing</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
