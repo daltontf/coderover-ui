@@ -22,8 +22,6 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
   private var currentFile:File = _
 
   private val currentScenarioProperty = BindableProperty[Scenario]("currentScenario", null)
-  
-  private var currentState:State = _
 
   private var currentEnvironment:GUIEnvironment = _
 
@@ -158,7 +156,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
 
     protected class TaskCompletionStatus(evaluationResult:ResultOrAbend[Unit]) {
       val stopped = viewController.stopped
-      val complete = taskManager.currentTask.isComplete(currentEnvironment, currentState)
+      val complete = taskManager.currentTask.isComplete(currentEnvironment, viewController.currentState)
       private[this] val sb = new StringBuffer()
       sb.append(currentScenarioProperty.get)
       sb.append(" - ")
@@ -192,8 +190,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
     }
 
     def runCurrentTask(parseResult:languageParser.ParseResult[List[Instruction]]) = {
-      currentState = currentScenarioProperty.get.createStartState()
-      viewController.syncToState(currentState)
+      viewController.syncToState(currentScenarioProperty.get.createStartState())
       viewController.syncEnvironment()
       val taskCompletionStatus = new TaskCompletionStatus(evaluator.evaluate(parseResult.get, viewController))
       consoleTextAppendOnEDT(taskCompletionStatus)
@@ -305,8 +302,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
         consoleTextAppend(value, null)
       }
     }
-    currentState = scenario.createStartState()
-    viewController.syncToState(currentState)
+    viewController.syncToState(currentScenarioProperty.get.createStartState())
     viewController.syncEnvironment()
     gridPane.setViewportView(viewController.getView);
   }

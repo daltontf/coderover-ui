@@ -127,6 +127,8 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
     canvas.repaint()
   }
 
+  def currentState() = state.copy()
+
   canvas.setPreferredSize(new Dimension(environment.sizeX * squareSize, environment.sizeY * squareSize)) 
   drawBackground()
   canvas.getLayer.addChild(background)

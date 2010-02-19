@@ -1,6 +1,6 @@
 package tfd.coderover.ui
 
-import _root_.tfd.coderover.{GridLocationOutOfBounds, Environment, State}
+import _root_.tfd.coderover.{Environment, State}
 
 class GUIEnvironment(
         sizeX:Int = 10,

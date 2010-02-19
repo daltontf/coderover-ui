@@ -71,7 +71,10 @@ object GotoFlag extends Task("Goto Flag", "Goto Flag") {
     new Scenario("Start at 7,2 - face down", new State(2,7,0), new GUIEnvironment(sizeX = 10, sizeY = 10, visibleEntities = Map("FLAG" -> Set((0,0)))) )
   )
 
-  def isComplete(environment:GUIEnvironment, state:State) = environment.visibleEntities("FLAG").contains((state.gridX, state.gridY))
+  def isComplete(environment:GUIEnvironment, state:State) = {
+    val rc = environment.visibleEntities("FLAG").contains((state.gridX, state.gridY)); 
+    println(rc);
+    rc }
 }
 
 object FollowTheYellowBrickRoad extends Task("Follow the Yellow Brick Road",
