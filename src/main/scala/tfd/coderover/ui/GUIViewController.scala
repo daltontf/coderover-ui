@@ -141,8 +141,10 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
        coordinates <- elements) {
     placePImage(new PImage(makePaintedImage(squareSize, squareSize, { g:Graphics =>
       g.setColor(Color.BLUE)
-      g.drawLine(0, 0, squareSize , squareSize)
-      g.drawLine(squareSize, 0, 0, squareSize)
+      val oneFourth = squareSize / 4;
+      g.drawLine(oneFourth, 5, oneFourth, squareSize - 5);
+      g.drawLine(oneFourth, 5, squareSize-oneFourth, oneFourth);
+      g.drawLine(squareSize-oneFourth, oneFourth, oneFourth, oneFourth * 2);
     })), coordinates)
   }
 
