@@ -80,9 +80,7 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
       if (environment.isPainted(x,y)) {
         renderPaint(Color.YELLOW, x, y)
       }
-    environment.obstructed.foreach { square =>
-      renderPaint(Color.BLACK, square._1, square._2)
-    }
+    environment.obstructed.foreach { case (x,y) => renderPaint(Color.BLACK, x, y) }
   }
 
   override def executeMoveForward() = {
