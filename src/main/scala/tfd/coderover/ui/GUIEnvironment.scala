@@ -10,7 +10,7 @@ class GUIEnvironment(
         val targetLocation:Option[(Int,Int)] = None,
         val visibleEntities:Map[String, Set[(Int,Int)]] = Map.empty[String, Set[(Int,Int)]],
         val hiddenEntities:Map[String, Set[(Int, Int)]] = Map.empty[String, Set[(Int,Int)]]
-  ) extends Environment(sizeX, sizeY, obstructed) {
+  ) extends Environment(sizeX, sizeY) {
   import Math._
 
   protected var painted:Array[Array[Boolean]] = _
@@ -29,6 +29,8 @@ class GUIEnvironment(
     } else {
       isPainted(x, y)
     }
+
+  override def isObstructed(x: Int, y: Int) = obstructed.contains((x,y))
 
   private[this] def distance(x1:Int, y1:Int, x2:Int, y2:Int) = {
     sqrt(abs(x2 - x1)^2 + abs(y2 - y1)^2)

@@ -76,11 +76,14 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
 
   def syncEnvironment() {
     drawBackground()
-    for (x <- 0 to environment.sizeX-1; y <- 0 to environment.sizeY-1)
+    for (x <- 0 to environment.sizeX-1; y <- 0 to environment.sizeY-1) {
       if (environment.isPainted(x,y)) {
         renderPaint(Color.YELLOW, x, y)
       }
-    environment.obstructed.foreach { case (x,y) => renderPaint(Color.BLACK, x, y) }
+      if (environment.isObstructed(x,y)) {
+        renderPaint(Color.BLACK, x, y)
+      }
+    }
   }
 
   override def executeMoveForward() = {

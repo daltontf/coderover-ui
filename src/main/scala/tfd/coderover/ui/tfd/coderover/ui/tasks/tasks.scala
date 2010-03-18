@@ -144,7 +144,7 @@ object PaintTheTown extends Task("PaintTheTown", "Paint every accessible square"
   def isComplete(environment:GUIEnvironment, state:State):Boolean = {
     for (x <- 0 to environment.sizeX-1;
          y <- 0 to environment.sizeY-1) {
-      if (!environment.obstructed.contains((x,y)) && !environment.isPainted(x,y,state)) {
+      if (!environment.isObstructed(x,y) && !environment.isPainted(x,y,state)) {
         return false
       }
     }
