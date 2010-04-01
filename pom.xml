@@ -95,7 +95,7 @@
         <dependency>
             <groupId>tfd.fest</groupId>
             <artifactId>fest-scala</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>0.0.1-${scala.version}-SNAPSHOT</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
