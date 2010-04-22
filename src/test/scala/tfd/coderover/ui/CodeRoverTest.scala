@@ -44,6 +44,6 @@ class CodeRoverTest extends TestCase {
     window.textBox(withToolTip[JTextPane]("Console messages")).requireText("[1.1] parsed: List()\r\nOnly Scenario - FAILED !!")
     window.textBox(withToolTip[JTextPane]("Enter code here")).setText("FORWARD")
     window.button(withToolTip[JButton]("Run for current scenario")).click()
-    window.textBox(withToolTip[JTextPane]("Console messages")).requireText("[1.8] parsed: List(Forward(Constant(1)))")
+    window.textBox(withToolTip[JTextPane]("Console messages")).requireText("[1.8] parsed: List(Forward())")
   }
 }

@@ -82,7 +82,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
   private lazy val openAction = new AbstractAction("Open") {
     override def actionPerformed(ae:ActionEvent) {
       val chooser = new JFileChooser
-      chooser.setFileFilter(new FileNameExtensionFilter("Code Rover Files", "coderover"))
+      chooser.setFileFilter(new FileNameExtensionFilter("CORAL Files", "coral"))
       if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
         val file = chooser.getSelectedFile
         if (file.exists) {
@@ -111,13 +111,13 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
 
     override def actionPerformed(ae:ActionEvent) {
       val chooser = new JFileChooser
-      chooser.setFileFilter(new FileNameExtensionFilter("Code Rover Files", "coderover"))
+      chooser.setFileFilter(new FileNameExtensionFilter("CORAL Files", "coral"))
       if (chooser.showSaveDialog(frame) == JFileChooser.APPROVE_OPTION) {
         val selectedFile = chooser.getSelectedFile
         val file = if (selectedFile.getName.indexOf(".") >= 0) {
           chooser.getSelectedFile
         } else {
-          new File(selectedFile.getAbsolutePath + ".coderover")
+          new File(selectedFile.getAbsolutePath + ".coral")
         }
         if (file.exists() &&
                 JOptionPane.showConfirmDialog(frame, "File Exists", "Existing file will be overwritten", OK_CANCEL_OPTION) != OK_OPTION) {
