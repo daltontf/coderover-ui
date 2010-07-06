@@ -151,3 +151,18 @@ object PaintTheTown extends Task("PaintTheTown", "Paint every accessible square"
     true
   }
 }
+
+object FindThePath extends Task("FindThePath", "Goto 3,3 with obstructions")
+{
+  def createStartEnvironment(obstructed:Set[(Int,Int)]) = { () => new GUIEnvironment(sizeX = 5, sizeY = 5, obstructed = obstructed) }
+
+  scenarios = List(
+    new Scenario("Scenario 1", createState(1,2,0), createStartEnvironment(Set((2,2),(3,1),(1,3)))),
+    new Scenario("Scenario 2", createState(1,1,0), createStartEnvironment(Set((1,2),(2,2),(3,2),(2,1),(2,3))))
+  )
+
+  def isComplete(environment:GUIEnvironment, state:State):Boolean = state match {
+    case State(3,3,_) => true
+    case _ => false
+  }
+}

@@ -74,7 +74,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
 
   private lazy val newAction = new AbstractAction("New") {
     override def actionPerformed(ae:ActionEvent) {
-      viewController.stopped = true
+      viewController.stop
       codeText.setText("")
     }
   }
@@ -86,7 +86,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
       if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
         val file = chooser.getSelectedFile
         if (file.exists) {
-          viewController.stopped = true
+          viewController.stop
           new Thread(new Runnable() {
             override def run() = {
               val reader = new BufferedReader(new FileReader(file))
@@ -267,7 +267,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
     setEnabled(false)
 
     override def actionPerformed(ae:ActionEvent) {
-      viewController.stopped = true
+      viewController.stop
     }
   }
 

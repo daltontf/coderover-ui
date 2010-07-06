@@ -173,7 +173,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>${main.class}</mainClass>
+                    <mainClass>mediastore.application.MediaStoreApplication</mainClass>
                 </configuration>
             </plugin>
             <plugin>

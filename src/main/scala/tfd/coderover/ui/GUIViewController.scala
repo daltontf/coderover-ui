@@ -106,7 +106,7 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
 
   def reset() {
     environment.reset()
-    resetCallStack()
+    resetState()
   }
 
   def getView():java.awt.Component = canvas
