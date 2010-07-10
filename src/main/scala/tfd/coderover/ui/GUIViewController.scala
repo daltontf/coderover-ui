@@ -62,8 +62,8 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
   }
 
   override def paint() {
-    environment.paint(state)
-    renderPaint(Color.YELLOW, state.gridX, state.gridY)
+    environment.paint(gridX, gridY)
+    renderPaint(Color.YELLOW, gridX, gridY)
   }
 
   def syncToState(newState:State) {

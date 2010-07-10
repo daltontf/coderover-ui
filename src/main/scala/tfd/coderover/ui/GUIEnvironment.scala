@@ -15,19 +15,15 @@ class GUIEnvironment(
 
   protected var painted:Array[Array[Boolean]] = _
   
-  def paint(x:Int, y:Int) {
+  override def paint(x:Int, y:Int) {
     painted(x)(y) = true
   }
 
-  override def paint(state:State) =  paint(state.gridX, state.gridY)
-
-  def isPainted(x:Int, y:Int) = painted(x)(y)
-
-  override def isPainted(x:Int, y:Int, state:State):Boolean =
+  override def isPainted(x:Int, y:Int):Boolean =
     if (x < 0 || y < 0 || x >= sizeX || y >= sizeY) {
       false
     } else {
-      isPainted(x, y)
+      painted(x)(y)
     }
 
   override def isObstructed(x: Int, y: Int) = obstructed.contains((x,y))
@@ -50,24 +46,24 @@ class GUIEnvironment(
     closest
   }
 
-  override def distanceX(entity:String, state:State):Option[Int] =
-    closestVisibleEntity(entity, state.gridX, state.gridY) match {
-      case Some((x, _)) => Some(state.gridX - x)
+  override def distanceX(entity:String, x:Int, y:Int):Option[Int] =
+    closestVisibleEntity(entity, x, y) match {
+      case Some((thatX, _)) => Some(x - thatX)
       case None => None
   }
 
-  override def distanceY(entity:String, state:State):Option[Int] =
-    closestVisibleEntity(entity, state.gridX, state.gridY) match {
-      case Some((_, y)) => Some(state.gridY - y) 
+  override def distanceY(entity:String, x:Int, y:Int):Option[Int] =
+    closestVisibleEntity(entity, x, y) match {
+      case Some((_, thatY)) => Some(y - thatY) 
       case None => None
   }
 
-  override def adjacent(entity:String, state:State) = {
+  override def adjacent(entity:String, x:Int, y:Int) = {
     val entityLocations = hiddenEntities.getOrElse(entity, Set.empty) ++ visibleEntities.getOrElse(entity, Set.empty)
-    entityLocations.contains((state.gridX - 1, state.gridY)) ||
-    entityLocations.contains((state.gridX + 1, state.gridY)) ||
-    entityLocations.contains((state.gridX, state.gridY - 1)) ||
-    entityLocations.contains((state.gridX, state.gridY + 1))
+    entityLocations.contains((x - 1, y)) ||
+    entityLocations.contains((x + 1, y)) ||
+    entityLocations.contains((x, y - 1)) ||
+    entityLocations.contains((x, y + 1))
   }
   
   def reset() {

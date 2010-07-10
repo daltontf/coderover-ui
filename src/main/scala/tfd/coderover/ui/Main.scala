@@ -13,8 +13,8 @@ object Main {
        SimpleTask,
        Goto55Task,
        GotoFlag,
-       MineField,
-       FollowTheYellowBrickRoad,
+       //MineField,
+       //FollowTheYellowBrickRoad,
        PaintTheTown
      ))
   	}
