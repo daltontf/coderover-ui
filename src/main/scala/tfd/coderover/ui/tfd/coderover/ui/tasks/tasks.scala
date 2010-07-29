@@ -2,8 +2,8 @@ package tfd.coderover.ui.tasks
 
 import tfd.coderover.ui.GUIEnvironment
 import tfd.coderover._
-
-class TaskManager(tasks:Task*) {
+import xml.{XML, Node, Elem, NodeSeq}
+class TaskManager(tasks:Seq[Task]) {
   private val taskArray:Array[Task] = tasks.toArray
   private var currentTaskIndex = 0
 
@@ -20,7 +20,16 @@ class TaskManager(tasks:Task*) {
   def currentTask = tasks(currentTaskIndex)
 }
 
-abstract class Task(val title:String, val description:String) {
+object DeserializeTaskManager extends (NodeSeq => TaskManager) {
+  override def apply(xml: NodeSeq) = {
+    new TaskManager(for (taskXML <- xml \ "task") yield (new XmlTask(taskXML)))
+  }
+}
+
+abstract class Task() {
+  var title:String = ""
+  var description:String = ""
+
   def isComplete(environment:GUIEnvironment, state:State):Boolean
 
   var scenarios:List[Scenario] = _
@@ -39,17 +48,108 @@ class Scenario(
   override def toString = description
 }
 
-object SimpleTask extends Task("Simple Task", "Simple Task") {
-  scenarios = List(new Scenario("Only Scenario", createState(2,2,1), () => new GUIEnvironment(sizeX = 10, sizeY = 10, targetLocation = Some(8,8))))
+class XmlTask(taskXML:NodeSeq) extends Task() {
+  private val evaluator = new Evaluator()
+  private var isCompleteExpression:BooleanExpression = _
 
-  def isComplete(environment:GUIEnvironment, state:State) = state match {
-    case State(8,8,_) => true
-    case _ => false
+  private var constraints = DefaultConstraints;
+
+  private def getOrElse[A](first:Option[A],second:Option[A], orElse:A) = first.getOrElse(second.getOrElse(orElse))
+
+  private def parseStartState(xml:NodeSeq) =
+    (for (startState <- xml \ "start_state")
+      yield (
+          Some((startState \ "@x").text.toInt),
+          Some((startState \ "@y").text.toInt),
+          Some((startState \ "@dir").text.toInt)
+      )).headOption.getOrElse(None, None, None)
+
+  private def parseGridSize(xml:NodeSeq) =
+      (for (gridSize <- xml \ "grid_size")
+        yield (
+          Some((gridSize \ "@x").text.toInt),
+          Some((gridSize \ "@y").text.toInt)
+      )).headOption.getOrElse(None, None)
+
+  private def parseLine(attribute:String, xml:NodeSeq) = {
+    val set = new collection.mutable.HashSet[(Int,Int)]()
+    for (elem <- xml \ attribute) {
+      val x = (elem \ "@x").text.toInt
+      val y = (elem \ "@y").text.toInt
+      val dx = (elem \ "@dx").text.toInt
+      val dy = (elem \ "@dy").text.toInt
+      for (i <- 0 until (elem \ "@length").text.toInt) {
+        set += ((x + (dx * i), y + (dy * i)))
+      }
+    }
+    set.toSet
   }
 
+  for (titleElem <- taskXML \ "title") {
+    title = titleElem.text
+  }
+  for (descriptionElem <- taskXML \ "description") {
+    description = descriptionElem.text
+  }
+  for (isCompleteElem <- taskXML \ "is_complete") {
+    val languageParser = new LanguageParser()
+    isCompleteExpression = languageParser.parse(languageParser.booleanExpression, isCompleteElem.text).get
+  }
+  val (sizeX, sizeY) = parseGridSize(taskXML)
+  val (startX, startY, startDir) = parseStartState(taskXML)
+  val obstructions = parseLine("obstruction", taskXML)
+  val painted = parseLine("paint", taskXML)
+  scenarios = (for (scenarioElem <- taskXML \ "scenario")
+    yield {
+      val (scenarioSizeX, scenarioSizeY) = parseGridSize(scenarioElem)
+      val (scenarioStartX, scenarioStartY, scenarioStartDir) = parseStartState(scenarioElem)
+      val scenarioObstructions = parseLine("obstruction", scenarioElem)
+      val scenarioPainted = parseLine("paint", scenarioElem)
+
+      new Scenario(
+        (scenarioElem \ "@title").text,
+        createState(
+                getOrElse(scenarioStartX, startX, 2),
+                getOrElse(scenarioStartY, startY, 2),
+                getOrElse(scenarioStartDir, startDir, 0)
+        ),
+        () => new GUIEnvironment(
+          sizeX = getOrElse(scenarioSizeX, sizeX, 10),
+          sizeY = getOrElse(scenarioSizeY, sizeY, 10),
+          obstructions ++ scenarioObstructions,
+          painted ++ scenarioPainted,
+          None,
+          Map.empty[String, Set[(Int,Int)]],
+          Map.empty[String, Set[(Int,Int)]]
+        ))
+  }).toList
+
+  def isComplete(environment:GUIEnvironment, state:State) = {
+    evaluator.evaluateBoolean(isCompleteExpression, Array.empty[Int], new Controller(state, environment, constraints)).value.get
+  }  
 }
 
-object Goto55Task extends Task("Goto 5,5", "Goto 5,5") {
+object SimpleXMLTask extends XmlTask(
+<task>
+  <title>Simple XML Task</title>
+  <description>Simple XML Task</description>
+  <grid_size x="9" y="9"/>
+  <is_complete>((X = 8) AND (Y = 8))</is_complete>
+  <start_state x="2" y="2" dir="2"/>
+  <scenario title="Only Scenario">
+    
+  </scenario>
+  <scenario title="Only Other Scenario">
+    <grid_size x="9" y="9"/>
+    <start_state x="3" y="3" dir="2"/>
+  </scenario>
+</task>
+)
+
+
+object Goto55Task extends Task() {
+  title = "Goto 5,5"
+  description = "Goto 5,5"
 
   def createStartEnvironment = { () => new GUIEnvironment(sizeX = 10, sizeY = 10, targetLocation = Some(5,5)) }
 
@@ -91,7 +191,10 @@ object Goto55Task extends Task("Goto 5,5", "Goto 5,5") {
 //  }
 //}
 
-object GotoFlag extends Task("Goto Flag", "Goto Flag") {
+object GotoFlag extends Task() {
+  title = "Goto Flag"
+  description = "Goto Flag"
+
   def createStartEnvironmentWithFlagAt(flagX:Int, flagY:Int) = { () =>  new GUIEnvironment(sizeX = 10, sizeY = 10, visibleEntities = Map("FLAG" -> Set((flagX, flagY)))) }
 
   scenarios = List(
@@ -132,8 +235,11 @@ object GotoFlag extends Task("Goto Flag", "Goto Flag") {
 //  }
 //}
 
-object PaintTheTown extends Task("PaintTheTown", "Paint every accessible square")
+object PaintTheTown extends Task()
 {
+  title = "PaintTheTown"
+  description = "Paint every accessible square"
+
   def createStartEnvironment(obstructed:Set[(Int,Int)]) = { () => new GUIEnvironment(sizeX = 5, sizeY = 5, obstructed = obstructed) }
 
   scenarios = List(
@@ -152,8 +258,11 @@ object PaintTheTown extends Task("PaintTheTown", "Paint every accessible square"
   }
 }
 
-object FindThePath extends Task("FindThePath", "Goto 3,3 with obstructions")
+object FindThePath extends Task()
 {
+  title = "FindThePath"
+  description = "Goto 3,3 with obstructions"
+
   def createStartEnvironment(obstructed:Set[(Int,Int)]) = { () => new GUIEnvironment(sizeX = 5, sizeY = 5, obstructed = obstructed) }
 
   scenarios = List(

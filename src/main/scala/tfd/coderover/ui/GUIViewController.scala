@@ -67,7 +67,7 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
   }
 
   def syncToState(newState:State) {
-    state.setEqual(newState)
+    state = newState
 		transform = new AffineTransform()
 		transform.translate(state.gridX * 50, state.gridY * 50)
 		transform.rotate(state.directionIndex * (java.lang.Math.PI/2), 25, 25)

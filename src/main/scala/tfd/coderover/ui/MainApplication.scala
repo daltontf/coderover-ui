@@ -14,12 +14,15 @@ import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 import _root_.tfd.gui.swing.codesyntaxpane.CodeSyntaxDocument
 import _root_.tfd.scala.properties.{HasBindableProperties}
 
-import tasks.{TaskManager, Scenario}
+import tasks.{DeserializeTaskManager, TaskManager, Scenario}
+import xml.XML
 
-class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
-  import edt._
+class MainApplication() extends HasBindableProperties {
+  import ThreadControl._
 
   private var currentFile:File = _
+
+  private val taskManagerProperty = BindableProperty[TaskManager]("taskManager", null)
 
   private val currentScenarioProperty = BindableProperty[Scenario]("currentScenario", null)
 
@@ -72,6 +75,28 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
 
   private def icon(s:String) = new ImageIcon(getClass().getClassLoader().getResource(s))
 
+  private lazy val loadAction = new AbstractAction("Load") {
+    override def actionPerformed(ae:ActionEvent) {
+      val chooser = new JFileChooser
+      chooser.setFileFilter(new FileNameExtensionFilter("XML TaskSet Files", "xml"))
+      if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+        val file = chooser.getSelectedFile
+        if (file.exists) {
+          if (viewController != null) {
+            viewController.stop
+          }
+          fork {
+            //try {
+              taskManagerProperty := DeserializeTaskManager(XML.loadFile(file))
+            //} catch {
+            //  case ex:Throwable => println(ex)
+            //}
+          }
+        }
+      }
+    }
+  }
+
   private lazy val newAction = new AbstractAction("New") {
     override def actionPerformed(ae:ActionEvent) {
       viewController.stop
@@ -87,8 +112,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
         val file = chooser.getSelectedFile
         if (file.exists) {
           viewController.stop
-          new Thread(new Runnable() {
-            override def run() = {
+          fork {
               val reader = new BufferedReader(new FileReader(file))
               val buffer = new StringBuffer(file.length.asInstanceOf[Int])
               while (reader.ready) {
@@ -99,8 +123,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
               onEDTLater {
                 codeText.setText(buffer.toString)
               }
-            }
-          }).start
+          }
         }
       }
     }
@@ -123,14 +146,12 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
                 JOptionPane.showConfirmDialog(frame, "File Exists", "Existing file will be overwritten", OK_CANCEL_OPTION) != OK_OPTION) {
           return
         }
-        new Thread(new Runnable() {
-          override def run() {
+        fork {
             val writer = new BufferedWriter(new FileWriter(file))
             val text = codeText.getText
             writer.write(text, 0, text.length)
             writer.close
-          }
-        }).start
+        }
       }
     }
   }
@@ -146,7 +167,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
     override def actionPerformed(ae:ActionEvent) {
       progressBar.setValue(0)
       progressBar.setMinimum(0)
-      progressBar.setMaximum(taskManager.currentTask.scenarios.length)
+      progressBar.setMaximum(taskManagerProperty.get.currentTask.scenarios.length)
       progressBar.setForeground(Color.GREEN)
       new Thread(new RunTaskWorker()).start
     }
@@ -156,7 +177,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
 
     protected class TaskCompletionStatus(evaluationResult:ResultOrAbend[Unit]) {
       val stopped = viewController.stopped
-      val complete = taskManager.currentTask.isComplete(currentEnvironment, viewController.currentState)
+      val complete = taskManagerProperty.get.currentTask.isComplete(currentEnvironment, viewController.currentState)
       private[this] val sb = new StringBuffer()
       sb.append(currentScenarioProperty.get)
       sb.append(" - ")
@@ -229,7 +250,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
       if (parseResult.successful) {
         var scenarioIndex = 0
         var failed = false
-        while (scenarioIndex < taskManager.currentTask.scenarios.length && !failed) {
+        while (scenarioIndex < taskManagerProperty.get.currentTask.scenarios.length && !failed) {
           onEDTWait {
             scenarioCombo.setSelectedIndex(scenarioIndex)
           }
@@ -244,7 +265,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
           }
         }
         if (!failed) {
-           taskManager.nextTask()
+           taskManagerProperty.get.nextTask()
            updateTaskAndScenarios()
         }
       }
@@ -283,7 +304,7 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
       mi.setMnemonic(mnemonic)
       mi
     }
-
+    add(menuItem(loadAction, 'L'))
     add(menuItem(newAction, 'N'))
     add(menuItem(openAction, 'O'))
     add(menuItem(saveAction, 'S'))
@@ -302,15 +323,19 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
         consoleTextAppend(value, null)
       }
     }
-    viewController.syncToState(currentScenarioProperty.get.createStartState())
+    viewController.syncToState(scenario.createStartState())
     viewController.syncEnvironment()
     gridPane.setViewportView(viewController.getView);
   }
 
+  taskManagerProperty.onChange { taskManager =>
+    updateTaskAndScenarios       
+  }
+
   def updateTaskAndScenarios() {
-    taskLabel.setText(taskManager.currentTask.toString)
-    currentScenarioProperty.set(taskManager.currentTask.scenarios(0))
-    scenarioCombo.setModel(new DefaultComboBoxModel(taskManager.currentTask.scenarios.toArray.asInstanceOf[Array[Object]]))
+    taskLabel.setText(taskManagerProperty.get.currentTask.toString)
+    currentScenarioProperty.set(taskManagerProperty.get.currentTask.scenarios(0))
+    scenarioCombo.setModel(new DefaultComboBoxModel(taskManagerProperty.get.currentTask.scenarios.toArray.asInstanceOf[Array[Object]]))
     scenarioCombo.addItemListener(new ItemListener() {
       override def itemStateChanged(ie:ItemEvent) {
         if (ie.getStateChange == ItemEvent.SELECTED) {
@@ -381,8 +406,5 @@ class MainApplication(taskManager:TaskManager) extends HasBindableProperties {
 
   frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
   frame.pack
-
-  updateTaskAndScenarios()
-
   frame.setVisible(true)
 }

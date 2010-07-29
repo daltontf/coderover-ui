@@ -25,7 +25,7 @@ class CodeRoverTest extends TestCase {
   override def setUp {
     EventQueue.invokeLater(new Runnable() {
       override def run() {
-        new MainApplication(new TaskManager(SimpleTask))
+        new MainApplication()
       }
     })
 
