@@ -64,11 +64,11 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
           Some((startState \ "@dir").text.toInt)
       )).headOption.getOrElse(None, None, None)
 
-  private def parseGridSize(xml:NodeSeq) =
-      (for (gridSize <- xml \ "grid_size")
+  private def parseCoordinate(attribute:String, xml:NodeSeq) =
+      (for (elem <- xml \ attribute)
         yield (
-          Some((gridSize \ "@x").text.toInt),
-          Some((gridSize \ "@y").text.toInt)
+          Some((elem \ "@x").text.toInt),
+          Some((elem \ "@y").text.toInt)
       )).headOption.getOrElse(None, None)
 
   private def parseLine(attribute:String, xml:NodeSeq) = {
@@ -85,6 +85,10 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
     set.toSet
   }
 
+  private def extractTarget(xy:(Option[Int], Option[Int])) = {
+    for (xp <- xy._1; yp <- xy._2) yield((xp,yp))
+  }
+
   for (titleElem <- taskXML \ "title") {
     title = titleElem.text
   }
@@ -95,16 +99,19 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
     val languageParser = new LanguageParser()
     isCompleteExpression = languageParser.parse(languageParser.booleanExpression, isCompleteElem.text).get
   }
-  val (sizeX, sizeY) = parseGridSize(taskXML)
+  val (sizeX, sizeY) = parseCoordinate("grid_size", taskXML)
   val (startX, startY, startDir) = parseStartState(taskXML)
   val obstructions = parseLine("obstruction", taskXML)
   val painted = parseLine("paint", taskXML)
+  val target = extractTarget(parseCoordinate("target", taskXML))
+
   scenarios = (for (scenarioElem <- taskXML \ "scenario")
     yield {
-      val (scenarioSizeX, scenarioSizeY) = parseGridSize(scenarioElem)
+      val (scenarioSizeX, scenarioSizeY) = parseCoordinate("grid_size", scenarioElem)
       val (scenarioStartX, scenarioStartY, scenarioStartDir) = parseStartState(scenarioElem)
       val scenarioObstructions = parseLine("obstruction", scenarioElem)
       val scenarioPainted = parseLine("paint", scenarioElem)
+      val scenarioTarget = extractTarget(parseCoordinate("target", scenarioElem))
 
       new Scenario(
         (scenarioElem \ "@title").text,
@@ -114,11 +121,11 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
                 getOrElse(scenarioStartDir, startDir, 0)
         ),
         () => new GUIEnvironment(
-          sizeX = getOrElse(scenarioSizeX, sizeX, 10),
-          sizeY = getOrElse(scenarioSizeY, sizeY, 10),
+          getOrElse(scenarioSizeX, sizeX, 10),
+          getOrElse(scenarioSizeY, sizeY, 10),
           obstructions ++ scenarioObstructions,
           painted ++ scenarioPainted,
-          None,
+          if (scenarioTarget.isDefined) scenarioTarget else target,
           Map.empty[String, Set[(Int,Int)]],
           Map.empty[String, Set[(Int,Int)]]
         ))
@@ -155,7 +162,7 @@ object Goto55Task extends Task() {
 
   scenarios = List(new Scenario("Start at 2,2 - face up", createState(2,2,0), createStartEnvironment),
                    new Scenario("Start at 2,8 - face left", createState(2,8,1), createStartEnvironment),
-                   new Scenario("Start at 2,8 - face left", createState(8,2,2), createStartEnvironment),
+                   new Scenario("Start at 8,2 - face down", createState(8,2,2), createStartEnvironment),
                    new Scenario("Start at 8,8 - face right", createState(8,8,3), createStartEnvironment))
 
   def isComplete(environment:GUIEnvironment, state:State) = state match {
