@@ -1,5 +1,6 @@
 package tfd.coderover.ui
 
+import _root_.tfd.coderover.{Constraints, Controller, DefaultConstraints, State}
 import java.awt.{Color, Dimension, Graphics}
 import java.awt.image.BufferedImage
 import java.awt.geom.AffineTransform
@@ -7,9 +8,16 @@ import java.awt.geom.AffineTransform
 import edu.umd.cs.piccolo.PCanvas;
 import edu.umd.cs.piccolo.nodes.PImage;
 
-import _root_.tfd.coderover.{Controller, DefaultConstraints, State}
+class GUIViewController(
+        squareSize:Int,
+        val startState:State,
+        val environment:GUIEnvironment,
+        constraints:Constraints) extends Controller(startState, environment, constraints)
+{
+  state = startState
 
-class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) extends Controller(new State(0,0,0), environment, DefaultConstraints) {
+  var printDelegate: Option[String => Unit] = _
+
 	private var transform:AffineTransform = _
       
 	private val canvas = new PCanvas()
@@ -66,8 +74,8 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
     renderPaint(Color.YELLOW, gridX, gridY)
   }
 
-  def syncToState(newState:State) {
-    state = newState
+  def syncToStartState() {
+    state = startState
 		transform = new AffineTransform()
 		transform.translate(state.gridX * 50, state.gridY * 50)
 		transform.rotate(state.directionIndex * (java.lang.Math.PI/2), 25, 25)
@@ -85,6 +93,8 @@ class GUIViewController(var squareSize:Int, var environment:GUIEnvironment) exte
       }
     }
   }
+
+  override def print(value:String) =  printDelegate.map{ f => f(value) }
 
   override def executeMoveForward() = {
 	  super.executeMoveForward()

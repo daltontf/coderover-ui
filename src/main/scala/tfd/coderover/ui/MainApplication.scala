@@ -211,7 +211,7 @@ class MainApplication() extends HasBindableProperties {
     }
 
     def runCurrentTask(parseResult:languageParser.ParseResult[List[Instruction]]) = {
-      viewController.syncToState(currentScenarioProperty.get.createStartState())
+      viewController.syncToStartState()
       viewController.syncEnvironment()
       val taskCompletionStatus = new TaskCompletionStatus(evaluator.evaluate(parseResult.get, viewController))
       consoleTextAppendOnEDT(taskCompletionStatus)
@@ -317,14 +317,15 @@ class MainApplication() extends HasBindableProperties {
   private val scenarioCombo = new JComboBox()
 
   currentScenarioProperty.onChange { scenario =>
-    currentEnvironment = scenario.createStartEnvironment()
-    viewController = new GUIViewController(50, currentEnvironment) {
-      override def print(value:String) = onEDTLater {
+    viewController = scenario.createController()
+    currentEnvironment = viewController.environment
+    viewController.printDelegate = Some((value:String) =>
+      onEDTLater {
         consoleTextAppend(value, null)
       }
-    }
-    viewController.syncToState(scenario.createStartState())
-    viewController.syncEnvironment()
+    )
+    viewController.syncToStartState()
+    //viewController.syncEnvironment()
     gridPane.setViewportView(viewController.getView);
   }
 

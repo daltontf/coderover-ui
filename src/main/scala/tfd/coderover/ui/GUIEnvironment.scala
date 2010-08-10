@@ -12,7 +12,7 @@ class GUIEnvironment(
         val hiddenEntities:Map[String, Set[(Int, Int)]] = Map.empty[String, Set[(Int,Int)]]
   ) extends Environment(sizeX, sizeY) {
   import Math._
-
+   
   protected var painted:Array[Array[Boolean]] = _
   
   override def paint(x:Int, y:Int) {

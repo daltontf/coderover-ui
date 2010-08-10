@@ -1,6 +1,6 @@
 package tfd.coderover.ui
 
-import _root_.tfd.coderover.ui.tasks.{TaskManager, SimpleTask}
+import _root_.tfd.coderover.ui.tasks.{TaskManager}
 import org.fest.swing.fixture.FrameFixture
 import org.fest.swing.launcher.ApplicationLauncher
 import junit.framework.TestCase
