@@ -50,7 +50,7 @@ class Scenario(
 class XmlTask(taskXML:NodeSeq) extends Task() {
   private val evaluator = new Evaluator()
   private var isCompleteExpression:BooleanExpression = _
-  private var postMoveForwardExpression:Some[BooleanExpression] = _
+  private var postMoveForwardExpression:Option[BooleanExpression] = None
 
   private var constraints = DefaultConstraints;
 
@@ -76,10 +76,17 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
     for (elem <- xml \ attribute) {
       val x = (elem \ "@x").text.toInt
       val y = (elem \ "@y").text.toInt
-      val dx = (elem \ "@dx").text.toInt
-      val dy = (elem \ "@dy").text.toInt
-      for (i <- 0 until (elem \ "@length").text.toInt) {
-        set += ((x + (dx * i), y + (dy * i)))
+      val dx = (elem \ "@dx").text
+      val dy = (elem \ "@dy").text
+      if (dx.length > 0) {
+        for (i <- Range(0, dx.toInt, if (dx.toInt < 0) -1 else 1)) {
+          set += (((x + i) , y))
+        }
+      }
+      if (dy.length > 0) {
+        for (i <- Range(0, dy.toInt, if (dy.toInt < 0) -1 else 1)) {
+          set += ((x , (y + i)))
+        }
       }
     }
     set.toSet
@@ -149,96 +156,3 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
   }
 }
 
-//object MineField extends Task("Goto 5,5 in Minefield", "Goto 5,5") {
-//
-//  object DetonatedLandMine extends Abend("Detonated a land mine")
-//
-//  def createStartEnvironment = { () => new GUIEnvironment(
-//    sizeX = 10,
-//    sizeY = 10,
-//    targetLocation = Some(5,5),
-//    hiddenEntities = Map("MINE" -> Set((3,3)))) {
-//
-//      override def postMoveForward(state:State) = {
-//        if (hiddenEntities.getOrElse("MINE", Set.empty).contains((state.gridX, state.gridY))) {
-//          Some(DetonatedLandMine)
-//        } else {
-//          None
-//        }
-//    }
-//  }}
-//
-//  scenarios = List(new Scenario("Start at 2,2 - face up", createState(2,2,0), createStartEnvironment))
-//
-//  def isComplete(environment:GUIEnvironment, state:State) = state match {
-//    case State(5,5,_) => true
-//    case _ => false
-//  }
-//}
-
-//object GotoFlag extends Task() {
-//  title = "Goto Flag"
-//  description = "Goto Flag"
-//
-//  def createStartEnvironmentWithFlagAt(flagX:Int, flagY:Int) = { () =>  new GUIEnvironment(sizeX = 10, sizeY = 10, visibleEntities = Map("FLAG" -> Set((flagX, flagY)))) }
-//
-//  scenarios = List(
-//    new Scenario("Start at 7,2 - face up", createState(7,2,0), createStartEnvironmentWithFlagAt(3,8)),
-//    new Scenario("Start at 7,2 - face down", createState(2,7,0), createStartEnvironmentWithFlagAt(0,0))
-//  )
-//
-//  def isComplete(environment:GUIEnvironment, state:State) = environment.visibleEntities("FLAG").contains((state.gridX, state.gridY))
-//}
-
-//object FollowTheYellowBrickRoad extends Task("Follow the Yellow Brick Road",
-//  "Navigate to destination touching only yellow ")
-//{
-//  object MovedToUnpainted extends Abend("Moved to unpainted square")
-//
-//  def createStartEnvironment = { () => new GUIEnvironment(sizeX = 10, sizeY = 10,
-//    prePainted = Set((2,2), (2,3), (3,3), (3,4), (3,5), (3,6), (2,6), (1,6), (1,7), (1,8),
-//      (2,8), (3,8), (4,8), (5,8), (5,7), (5,6), (5,5), (5,4), (5,3), (5,2), (5,1), (6,1),
-//      (7,1), (8,1), (9,1), (9,2), (9,3), (9,4), (8,4), (7,4), (7,5), (7,6), (8,6), (9,6),
-//      (9,7), (9,8), (8,8)),
-//    targetLocation = Some(8,8)) {
-//
-//    override def postMoveForward(state:State) = {
-//      if (!isPainted(state.gridX, state.gridY)) {
-//        Some(MovedToUnpainted)
-//      } else {
-//        None
-//      }
-//    }
-//   }
-//  }
-//
-//  scenarios = List( new Scenario("Scenario 1", createState(2,2,0), createStartEnvironment))
-//
-//  def isComplete(environment:GUIEnvironment, state:State) = state match {
-//    case State(8,8,_) => true
-//    case _ => false
-//  }
-//}
-//
-//object PaintTheTown extends Task()
-//{
-//  title = "PaintTheTown"
-//  description = "Paint every accessible square"
-//
-//  def createStartEnvironment(obstructed:Set[(Int,Int)]) = { () => new GUIEnvironment(sizeX = 5, sizeY = 5, obstructed = obstructed) }
-//
-//  scenarios = List(
-//    new Scenario("Scenario 1", createState(1,1,0), createStartEnvironment(Set((2,2),(3,1),(1,3)))),
-//    new Scenario("Scenario 2", createState(3,3,0), createStartEnvironment(Set((1,2),(2,2),(3,2),(2,1),(2,3))))
-//  )
-//
-//  def isComplete(environment:GUIEnvironment, state:State):Boolean = {
-//    for (x <- 0 to environment.sizeX-1;
-//         y <- 0 to environment.sizeY-1) {
-//      if (!environment.isObstructed(x,y) && !environment.isPainted(x,y)) {
-//        return false
-//      }
-//    }
-//    true
-//  }
-//}
