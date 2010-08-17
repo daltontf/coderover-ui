@@ -3,6 +3,7 @@ package tfd.coderover.ui.tasks
 import tfd.coderover._
 import ui.{GUIViewController, GUIEnvironment}
 import xml.{XML, Node, Elem, NodeSeq}
+import collection.immutable.{HashSet, HashMap}
 
 class TaskManager(tasks:Seq[Task]) {
   private val taskArray:Array[Task] = tasks.toArray
@@ -69,7 +70,7 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
         yield (
           Some((elem \ "@x").text.toInt),
           Some((elem \ "@y").text.toInt)
-      )).headOption.getOrElse(None, None)
+      ))
 
   private def parseLine(attribute:String, xml:NodeSeq) = {
     val set = new collection.mutable.HashSet[(Int,Int)]()
@@ -109,19 +110,21 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
   for (postMoveForward <- taskXML \ "post_move_forward") {
     postMoveForwardExpression = Some(languageParser.parse(languageParser.booleanExpression, postMoveForward.text).get)
   }
-  val (sizeX, sizeY) = parseCoordinate("grid_size", taskXML)
+  val (sizeX, sizeY) = parseCoordinate("grid_size", taskXML).headOption.getOrElse(None, None)
   val (startX, startY, startDir) = parseStartState(taskXML)
   val obstructions = parseLine("obstruction", taskXML)
   val painted = parseLine("paint", taskXML)
-  val target = extractTarget(parseCoordinate("target", taskXML))
+  val target = extractTarget(parseCoordinate("target", taskXML).headOption.getOrElse(None, None))
+  val flags = parseCoordinate("flag", taskXML)
 
   scenarios = (for (scenarioElem <- taskXML \ "scenario")
     yield {
-      val (scenarioSizeX, scenarioSizeY) = parseCoordinate("grid_size", scenarioElem)
+      val (scenarioSizeX, scenarioSizeY) = parseCoordinate("grid_size", scenarioElem).headOption.getOrElse(None, None)
       val (scenarioStartX, scenarioStartY, scenarioStartDir) = parseStartState(scenarioElem)
       val scenarioObstructions = parseLine("obstruction", scenarioElem)
       val scenarioPainted = parseLine("paint", scenarioElem)
-      val scenarioTarget = extractTarget(parseCoordinate("target", scenarioElem))
+      val scenarioTarget = extractTarget(parseCoordinate("target", scenarioElem).headOption.getOrElse(None, None))
+      val scenarioFlags = parseCoordinate("flag", scenarioElem)
 
       new Scenario(
         (scenarioElem \ "@title").text,
@@ -136,7 +139,9 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
                 obstructions ++ scenarioObstructions,
                 painted ++ scenarioPainted,
                 if (scenarioTarget.isDefined) scenarioTarget else target,
-                Map.empty[String, Set[(Int,Int)]],
+                Map("FLAG" -> (for (coord <-  flags ++ scenarioFlags;
+                     x <- coord._1;
+                     y <- coord._2) yield (x,y)).toSet),
                 Map.empty[String, Set[(Int,Int)]]
             ), DefaultConstraints
             ) {
