@@ -31,9 +31,6 @@ object DeserializeTaskManager extends (NodeSeq => TaskManager) {
 abstract class Task() {
   var title:String = ""
   var description:String = ""
-
-  def isComplete(environment:GUIEnvironment, state:State):Boolean
-
   var scenarios:List[Scenario] = _
 
   override def toString() = title
@@ -41,17 +38,18 @@ abstract class Task() {
   def createState(x:Int, y:Int, direction:Int) = new State(x, y, direction)
 }
 
-class Scenario(
+abstract class Scenario(
   val description:String,
   val createController:() => GUIViewController
 ) {
   override def toString = description
+
+  def isComplete(environment:GUIEnvironment, state:State):Boolean
 }
 
 class XmlTask(taskXML:NodeSeq) extends Task() {
-  private val evaluator = new Evaluator()
-  private var isCompleteExpression:BooleanExpression = _
-  private var postMoveForwardExpression:Option[BooleanExpression] = None
+  lazy private val evaluator = new Evaluator()
+  lazy private val languageParser = new LanguageParser()
 
   private var constraints = DefaultConstraints;
 
@@ -72,9 +70,9 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
           Some((elem \ "@y").text.toInt)
       ))
 
-  private def parseLine(attribute:String, xml:NodeSeq) = {
+  private def parseLine(element:String, xml:NodeSeq) = {
     val set = new collection.mutable.HashSet[(Int,Int)]()
-    for (elem <- xml \ attribute) {
+    for (elem <- xml \ element) {
       val x = (elem \ "@x").text.toInt
       val y = (elem \ "@y").text.toInt
       val dx = (elem \ "@dx").text
@@ -97,19 +95,22 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
     for (xp <- xy._1; yp <- xy._2) yield((xp,yp))
   }
 
+  private def extractParsedBooleanExpression(element:String, xml:NodeSeq) =
+    for (
+      isCompleteElem <- (xml \ element).headOption
+    ) yield (
+      languageParser.parse(languageParser.booleanExpression, isCompleteElem.text).get
+    )
+
   for (titleElem <- taskXML \ "title") {
     title = titleElem.text
   }
   for (descriptionElem <- taskXML \ "description") {
     description = descriptionElem.text
   }
-  lazy val languageParser = new LanguageParser()
-  for (isCompleteElem <- taskXML \ "is_complete") {
-    isCompleteExpression = languageParser.parse(languageParser.booleanExpression, isCompleteElem.text).get
-  }
-  for (postMoveForward <- taskXML \ "post_move_forward") {
-    postMoveForwardExpression = Some(languageParser.parse(languageParser.booleanExpression, postMoveForward.text).get)
-  }
+
+  val isCompleteExpression = extractParsedBooleanExpression("is_complete", taskXML)
+  val postMoveForwardExpression = extractParsedBooleanExpression("post_move_forward", taskXML)
   val (sizeX, sizeY) = parseCoordinate("grid_size", taskXML).headOption.getOrElse(None, None)
   val (startX, startY, startDir) = parseStartState(taskXML)
   val obstructions = parseLine("obstruction", taskXML)
@@ -125,6 +126,8 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
       val scenarioPainted = parseLine("paint", scenarioElem)
       val scenarioTarget = extractTarget(parseCoordinate("target", scenarioElem).headOption.getOrElse(None, None))
       val scenarioFlags = parseCoordinate("flag", scenarioElem)
+      val scenarioIsCompleteExpression = extractParsedBooleanExpression("is_complete", scenarioElem)
+      val scenarioPostMoveForwardExpression = extractParsedBooleanExpression("post_move_forward", scenarioElem)
 
       new Scenario(
         (scenarioElem \ "@title").text,
@@ -146,18 +149,25 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
             ), DefaultConstraints
             ) {
 
-            override def postMoveForward():Option[Abend] =
-              if (postMoveForwardExpression.isDefined &&
-                  evaluator.evaluateBoolean(postMoveForwardExpression.get, Array.empty[Int], new Controller(this.state, this.environment, constraints)).value.get) {
+            override def postMoveForward():Option[Abend] = {
+              val expression = if (scenarioPostMoveForwardExpression.isDefined) scenarioPostMoveForwardExpression else postMoveForwardExpression
+              if (expression.isDefined &&
+                  evaluator.evaluateBoolean(expression.get, Array.empty[Int], new Controller(this.state, this.environment, constraints)).value.get) {
                   Some(new Abend("PostMoveForward") {})
                 } else {
                   None
                 }
-            })
+              }
+            }) { 
+            override def isComplete(environment:GUIEnvironment, state:State) = {
+              val expression = if (scenarioIsCompleteExpression.isDefined) scenarioIsCompleteExpression else isCompleteExpression
+              if (expression.isDefined) {
+                evaluator.evaluateBoolean(expression.get, Array.empty[Int], new Controller(state, environment, constraints)).value.get
+              } else {
+                false
+              }
+            }
+          }
   }).toList
-
-  override def isComplete(environment:GUIEnvironment, state:State) = {
-    evaluator.evaluateBoolean(isCompleteExpression, Array.empty[Int], new Controller(state, environment, constraints)).value.get
-  }
 }
 

@@ -5,7 +5,8 @@ import java.awt.{Color, Dimension, Graphics}
 import java.awt.image.BufferedImage
 import java.awt.geom.AffineTransform
 
-import edu.umd.cs.piccolo.PCanvas;
+import edu.umd.cs.piccolo.PCanvas
+import java.awt.event.MouseEvent;
 import edu.umd.cs.piccolo.nodes.PImage;
 
 class GUIViewController(
@@ -20,7 +21,18 @@ class GUIViewController(
 
 	private var transform:AffineTransform = _
       
-	private val canvas = new PCanvas()
+	private val canvas = new PCanvas() {
+    override def getToolTipText(event: MouseEvent) = {
+      val x = event.getX() / squareSize
+      val y = event.getY() / squareSize
+      if (x < environment.sizeX && y  < environment.sizeY) {
+        "X = " + x + ", Y = " + y
+      } else {
+        null
+      }
+    }
+  }
+  canvas.setToolTipText("") // Bug in Piccolo requires this for the override to work?
 
   private val background = new PImage()
 

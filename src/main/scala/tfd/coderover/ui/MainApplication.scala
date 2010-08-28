@@ -26,15 +26,21 @@ class MainApplication() extends HasBindableProperties {
 
   private val currentScenarioProperty = BindableProperty[Scenario]("currentScenario", null)
 
-  private var currentEnvironment:GUIEnvironment = _
+  private var currentEnvironment:GUIEnvironment = new GUIEnvironment(10, 10, Set.empty, Set.empty, None, Map.empty, Map.empty)
 
-  private var viewController:GUIViewController = _
+  private var viewController:GUIViewController = new GUIViewController(50, State(2,2,0), currentEnvironment, DefaultConstraints)
 
   private var evaluator:Evaluator = new Evaluator()
 
   private val languageParser = new LanguageParser()
 
   private val codeFont = new Font("Courier", Font.BOLD, 12)
+
+  private val printDelegate = Some((value:String) =>
+      onEDTLater {
+        consoleTextAppend(value, null)
+      }
+    )
 
   private val codeText = new JTextPane();
   { 	import codeText._
@@ -177,27 +183,34 @@ class MainApplication() extends HasBindableProperties {
 
     protected class TaskCompletionStatus(evaluationResult:ResultOrAbend[Unit]) {
       val stopped = viewController.stopped
-      val complete = taskManagerProperty.get.currentTask.isComplete(currentEnvironment, viewController.currentState)
+      val runningTask = (taskManagerProperty.get != null)
+      val complete = if (runningTask) currentScenarioProperty.get.isComplete(currentEnvironment, viewController.currentState) else false
       private[this] val sb = new StringBuffer()
-      sb.append(currentScenarioProperty.get)
-      sb.append(" - ")
+      if (runningTask) {
+        sb.append(currentScenarioProperty.get)
+        sb.append(" - ")
+      }
       sb.append(
         if (stopped) {
           "Stopped by user"
         } else {
-          if (evaluationResult.abend == None) {
-            if (complete) {
-              "SUCCESS !!"
+          if (runningTask) {
+            if (evaluationResult.abend == None) {
+              if (complete) {
+                "SUCCESS !!"
+              } else {
+                "FAILED !!"
+              }
             } else {
-              "FAILED !!"
+              evaluationResult.abend.get.message
             }
           } else {
-            evaluationResult.abend.get.message
+            "" 
           }
         }
-        )
+      )
       val message = sb.toString
-      val failed = (stopped || !complete)
+      val failed = (stopped || (runningTask && !complete))
     }
 
     def doRun()
@@ -233,7 +246,7 @@ class MainApplication() extends HasBindableProperties {
          viewController.repaint()
          onEDTLater {
            runAction.setEnabled(true)
-           runTaskAction.setEnabled(true)
+           runTaskAction.setEnabled(taskManagerProperty.get != null)
            scenarioCombo.setEnabled(true)
            stopAction.setEnabled(false)
          }
@@ -319,11 +332,7 @@ class MainApplication() extends HasBindableProperties {
   currentScenarioProperty.onChange { scenario =>
     viewController = scenario.createController()
     currentEnvironment = viewController.environment
-    viewController.printDelegate = Some((value:String) =>
-      onEDTLater {
-        consoleTextAppend(value, null)
-      }
-    )
+    viewController.printDelegate = printDelegate
     viewController.syncToStartState()
     //viewController.syncEnvironment()
     gridPane.setViewportView(viewController.getView);
@@ -404,6 +413,12 @@ class MainApplication() extends HasBindableProperties {
     codeCanvasPane,
     consolePane
     ),BorderLayout.CENTER)
+
+  runTaskAction.setEnabled(false)
+  viewController.printDelegate = printDelegate
+  viewController.syncToStartState()
+  //viewController.syncEnvironment()
+  gridPane.setViewportView(viewController.getView);
 
   frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
   frame.pack
