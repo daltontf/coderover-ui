@@ -28,7 +28,7 @@ class MainApplication() extends HasBindableProperties {
 
   private var currentEnvironment:GUIEnvironment = new GUIEnvironment(10, 10, Set.empty, Set.empty, None, Map.empty, Map.empty)
 
-  private var viewController:GUIViewController = new GUIViewController(50, State(2,2,0), currentEnvironment, DefaultConstraints)
+  private var viewController:GUIViewController = new GUIViewController(50, State(2,2,0), currentEnvironment, None, DefaultConstraints)
 
   private var evaluator:Evaluator = new Evaluator()
 
@@ -81,27 +81,28 @@ class MainApplication() extends HasBindableProperties {
 
   private def icon(s:String) = new ImageIcon(getClass().getClassLoader().getResource(s))
 
+  private def loadFile(description:String, extension:String)(block:File => Unit) {
+    val chooser = new JFileChooser
+    chooser.setFileFilter(new FileNameExtensionFilter(description, extension))
+    if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+       val file = chooser.getSelectedFile
+       if (file.exists) {
+          block(file)
+       }
+    }
+  }
+
   private lazy val loadAction = new AbstractAction("Load") {
     override def actionPerformed(ae:ActionEvent) {
-      val chooser = new JFileChooser
-      chooser.setFileFilter(new FileNameExtensionFilter("XML TaskSet Files", "xml"))
-      if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
-        val file = chooser.getSelectedFile
-        if (file.exists) {
-          if (viewController != null) {
-            viewController.stop
-          }
+      loadFile("XML TaskSet Files", "xml") { file =>
+          viewController.stop
           fork {
-            //try {
               taskManagerProperty := DeserializeTaskManager(XML.loadFile(file))
-            //} catch {
-            //  case ex:Throwable => println(ex)
-            //}
           }
-        }
       }
     }
   }
+
 
   private lazy val newAction = new AbstractAction("New") {
     override def actionPerformed(ae:ActionEvent) {
@@ -112,29 +113,24 @@ class MainApplication() extends HasBindableProperties {
 
   private lazy val openAction = new AbstractAction("Open") {
     override def actionPerformed(ae:ActionEvent) {
-      val chooser = new JFileChooser
-      chooser.setFileFilter(new FileNameExtensionFilter("CORAL Files", "coral"))
-      if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
-        val file = chooser.getSelectedFile
-        if (file.exists) {
-          viewController.stop
-          fork {
-              val reader = new BufferedReader(new FileReader(file))
-              val buffer = new StringBuffer(file.length.asInstanceOf[Int])
-              while (reader.ready) {
-                buffer.append(reader.readLine)
-                buffer.append("\n")
-              }
-              reader.close
-              onEDTLater {
-                codeText.setText(buffer.toString)
-              }
+      loadFile("CORAL Files", "coral") { file =>
+        viewController.stop
+        fork {
+          val reader = new BufferedReader(new FileReader(file))
+          val buffer = new StringBuffer(file.length.asInstanceOf[Int])
+          while (reader.ready) {
+            buffer.append(reader.readLine)
+            buffer.append("\n")
+          }
+          reader.close
+          onEDTLater {
+            codeText.setText(buffer.toString)
           }
         }
       }
     }
   }
-
+  
   private lazy val saveAction = new AbstractAction("Save") {
     import javax.swing.JOptionPane._
 
@@ -181,7 +177,7 @@ class MainApplication() extends HasBindableProperties {
 
   abstract private class BaseRunWorker extends Runnable {
 
-    protected class TaskCompletionStatus(evaluationResult:ResultOrAbend[Unit]) {
+    protected class TaskCompletionStatus(evaluationResult:ResultOrAbend[Any]) {
       val stopped = viewController.stopped
       val runningTask = (taskManagerProperty.get != null)
       val complete = if (runningTask) currentScenarioProperty.get.isComplete(currentEnvironment, viewController.currentState) else false

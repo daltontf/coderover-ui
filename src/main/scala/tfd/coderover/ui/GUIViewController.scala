@@ -1,6 +1,6 @@
 package tfd.coderover.ui
 
-import _root_.tfd.coderover.{Constraints, Controller, DefaultConstraints, State}
+import _root_.tfd.coderover._
 import java.awt.{Color, Dimension, Graphics}
 import java.awt.image.BufferedImage
 import java.awt.geom.AffineTransform
@@ -13,9 +13,12 @@ class GUIViewController(
         squareSize:Int,
         val startState:State,
         val environment:GUIEnvironment,
+        val postMoveForwardExpression:Option[BooleanExpression],
         constraints:Constraints) extends Controller(startState, environment, constraints)
 {
   state = startState
+
+  lazy private val evaluator = new Evaluator()
 
   var printDelegate: Option[String => Unit] = _
 
@@ -113,7 +116,15 @@ class GUIViewController(
 	  transform.translate(0, -50)
     executeAnimation(500)
 	}
- 
+
+  override def postMoveForward():Option[Abend] =
+    if (postMoveForwardExpression.isDefined &&
+      evaluator.evaluateBoolean(postMoveForwardExpression.get, Array.empty[Int], this).value.get) {
+      Some(new Abend("PostMoveForward") {})
+    } else {
+      None
+    }
+
 	override def turnRight() = {
 	  super.turnRight()
 	  transform.rotate(java.lang.Math.PI/2, 25, 25)

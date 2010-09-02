@@ -146,19 +146,10 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
                      x <- coord._1;
                      y <- coord._2) yield (x,y)).toSet),
                 Map.empty[String, Set[(Int,Int)]]
-            ), DefaultConstraints
-            ) {
-
-            override def postMoveForward():Option[Abend] = {
-              val expression = if (scenarioPostMoveForwardExpression.isDefined) scenarioPostMoveForwardExpression else postMoveForwardExpression
-              if (expression.isDefined &&
-                  evaluator.evaluateBoolean(expression.get, Array.empty[Int], new Controller(this.state, this.environment, constraints)).value.get) {
-                  Some(new Abend("PostMoveForward") {})
-                } else {
-                  None
-                }
-              }
-            }) { 
+            ), if (scenarioPostMoveForwardExpression.isDefined) scenarioPostMoveForwardExpression else postMoveForwardExpression,
+            DefaultConstraints
+            )
+        ) { 
             override def isComplete(environment:GUIEnvironment, state:State) = {
               val expression = if (scenarioIsCompleteExpression.isDefined) scenarioIsCompleteExpression else isCompleteExpression
               if (expression.isDefined) {

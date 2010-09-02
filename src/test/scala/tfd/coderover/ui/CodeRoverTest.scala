@@ -39,9 +39,13 @@ class CodeRoverTest extends TestCase {
     window.cleanUp
   }
 
+
   def testIt() {
+    import Thread._
+
     window.button(withToolTip[JButton]("Run for current scenario")).click()
-    window.textBox(withToolTip[JTextPane]("Console messages")).requireText("[1.1] parsed: List()\r\nOnly Scenario - FAILED !!")
+    sleep(500)
+    window.textBox(withToolTip[JTextPane]("Console messages")).requireText("[1.1] parsed: List()\r\n")
     window.textBox(withToolTip[JTextPane]("Enter code here")).setText("FORWARD")
     window.button(withToolTip[JButton]("Run for current scenario")).click()
     window.textBox(withToolTip[JTextPane]("Console messages")).requireText("[1.8] parsed: List(Forward())")
