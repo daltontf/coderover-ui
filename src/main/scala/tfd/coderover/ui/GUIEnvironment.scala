@@ -3,13 +3,13 @@ package tfd.coderover.ui
 import _root_.tfd.coderover.{Environment, State}
 
 class GUIEnvironment(
-        sizeX:Int = 10,
-        sizeY:Int = 10,
-        obstructed:Set[(Int,Int)] = Set.empty[(Int,Int)],
-        prePainted:Set[(Int,Int)] = Set.empty[(Int,Int)],
-        val targetLocation:Option[(Int,Int)] = None,
-        val visibleEntities:Map[String, Set[(Int,Int)]] = Map.empty[String, Set[(Int,Int)]],
-        val hiddenEntities:Map[String, Set[(Int, Int)]] = Map.empty[String, Set[(Int,Int)]]
+        sizeX:Int,
+        sizeY:Int,
+        obstructed:Set[(Int,Int)],
+        prePainted:Set[(Int,Int)],
+        val targetLocation:Option[(Int,Int)],
+        val visibleEntities:Map[String, Set[(Int,Int)]],
+        val hiddenEntities:Map[String, Set[(Int, Int)]]
   ) extends Environment(sizeX, sizeY) {
   import Math._
    

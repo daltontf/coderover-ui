@@ -1,21 +1,20 @@
 package tfd.coderover.ui
 
 import _root_.tfd.coderover._
-import java.awt.{BorderLayout, Color, Dimension, GridBagLayout, GridBagConstraints, Font, Rectangle}
 import java.awt.event.{ActionEvent, ItemListener, ItemEvent}
 
 import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter}
 
 import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComboBox, JLabel, JOptionPane, JPanel, JProgressBar, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JScrollPane, JSplitPane, JTextPane, JToolBar}
 import javax.swing.filechooser.{FileNameExtensionFilter}
-import javax.swing.text.{StyleConstants, SimpleAttributeSet, AttributeSet, DefaultStyledDocument}
-
 import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 import _root_.tfd.gui.swing.codesyntaxpane.CodeSyntaxDocument
 import _root_.tfd.scala.properties.{HasBindableProperties}
 
 import tasks.{DeserializeTaskManager, TaskManager, Scenario}
 import xml.XML
+import javax.swing.text._
+import java.awt.{Rectangle, Color, Dimension, GridBagConstraints, GridBagLayout, Font, BorderLayout}
 
 class MainApplication() extends HasBindableProperties {
   import ThreadControl._
@@ -26,9 +25,9 @@ class MainApplication() extends HasBindableProperties {
 
   private val currentScenarioProperty = BindableProperty[Scenario]("currentScenario", null)
 
-  private var currentEnvironment:GUIEnvironment = new GUIEnvironment(10, 10, Set.empty, Set.empty, None, Map.empty, Map.empty)
+  private var currentEnvironment:GUIEnvironment = new GUIEnvironment(8, 10, Set.empty, Set.empty, None, Map.empty, Map.empty)
 
-  private var viewController:GUIViewController = new GUIViewController(50, State(2,2,0), currentEnvironment, None, DefaultConstraints)
+  private var viewController:GUIViewController = new GUIViewController(45, State(2,2,0), currentEnvironment, None, DefaultConstraints)
 
   private var evaluator:Evaluator = new Evaluator()
 
@@ -92,9 +91,9 @@ class MainApplication() extends HasBindableProperties {
     }
   }
 
-  private lazy val loadAction = new AbstractAction("Load") {
+  private lazy val openTaskSetAction = new AbstractAction("Task Set") {
     override def actionPerformed(ae:ActionEvent) {
-      loadFile("XML TaskSet Files", "xml") { file =>
+      loadFile("XML Task Set Files", "xml") { file =>
           viewController.stop
           fork {
               taskManagerProperty := DeserializeTaskManager(XML.loadFile(file))
@@ -111,7 +110,7 @@ class MainApplication() extends HasBindableProperties {
     }
   }
 
-  private lazy val openAction = new AbstractAction("Open") {
+  private lazy val openCoralAction = new AbstractAction("CORAL") {
     override def actionPerformed(ae:ActionEvent) {
       loadFile("CORAL Files", "coral") { file =>
         viewController.stop
@@ -131,7 +130,7 @@ class MainApplication() extends HasBindableProperties {
     }
   }
   
-  private lazy val saveAction = new AbstractAction("Save") {
+  private lazy val saveCoralAction = new AbstractAction("CORAL") {
     import javax.swing.JOptionPane._
 
     override def actionPerformed(ae:ActionEvent) {
@@ -313,10 +312,16 @@ class MainApplication() extends HasBindableProperties {
       mi.setMnemonic(mnemonic)
       mi
     }
-    add(menuItem(loadAction, 'L'))
     add(menuItem(newAction, 'N'))
-    add(menuItem(openAction, 'O'))
-    add(menuItem(saveAction, 'S'))
+    val openSubMenu = new JMenu("Open")
+    openSubMenu.setMnemonic('O')
+    add(openSubMenu)
+    openSubMenu.add(menuItem(openTaskSetAction, 'T'))
+    openSubMenu.add(menuItem(openCoralAction, 'C'))
+    val saveSubMenu = new JMenu("Save")
+    openSubMenu.setMnemonic('S')
+    add(saveSubMenu)
+    saveSubMenu.add(menuItem(saveCoralAction, 'C'))
   }
   menuBar.add(menu)
   frame.setJMenuBar(menuBar)
@@ -330,11 +335,11 @@ class MainApplication() extends HasBindableProperties {
     currentEnvironment = viewController.environment
     viewController.printDelegate = printDelegate
     viewController.syncToStartState()
-    //viewController.syncEnvironment()
-    gridPane.setViewportView(viewController.getView);
+    gridPane.setViewportView(viewController.getView)
   }
 
   taskManagerProperty.onChange { taskManager =>
+    runTaskAction.setEnabled(true)
     updateTaskAndScenarios       
   }
 
@@ -369,7 +374,7 @@ class MainApplication() extends HasBindableProperties {
     val panel = new JPanel
     panel.setOpaque(false)
     panel.setLayout(new GridBagLayout())
-    val gbc = new GridBagConstraints();
+    val gbc = new GridBagConstraints()
     import GridBagConstraints._
     gbc.anchor = NORTHWEST
     gbc.fill = BOTH
@@ -389,32 +394,53 @@ class MainApplication() extends HasBindableProperties {
 
   private val gridPane = new JScrollPane()
 
+  def setTabs(textPane:JTextPane, charactersPerTab:Int) {
+		val tabWidth = textPane.getFontMetrics(textPane.getFont()).charWidth('w') * charactersPerTab
+
+		val tabs = new Array[TabStop](10)
+
+		for (j <- 0 until tabs.length) {
+			val tab = j + 1
+			tabs(j) = new TabStop( tab * tabWidth )
+		}
+
+		val tabSet = new TabSet(tabs)
+		val attributes = new SimpleAttributeSet()
+		StyleConstants.setTabSet(attributes, tabSet)
+		val length = textPane.getDocument().getLength()
+		textPane.getStyledDocument().setParagraphAttributes(0, length, attributes, false)
+	}
+
+  val codeScrollPane = new JScrollPane(codeText)
   private[this] val codeCanvasPane = new JSplitPane(
     JSplitPane.HORIZONTAL_SPLIT,
-    new JScrollPane(codeText),
+    codeScrollPane,
     gridPane
     )
   val codeTextDoc = new CodeSyntaxDocument(codeText)
   codeText.setDocument(codeTextDoc)
+  setTabs(codeText, 4)
+  codeScrollPane.setRowHeaderView( new TextLineNumber(codeText, 1) );
 
-  codeCanvasPane.setDividerLocation(265)
+  codeCanvasPane.setDividerLocation(390)
   codeCanvasPane.setPreferredSize(new Dimension(780, 505))
   contentPane.add(toolBar, BorderLayout.NORTH)
 
   private[this] val consolePane = new JScrollPane(consoleText)
   consolePane.setPreferredSize(new Dimension(700,120))
 
-  contentPane.add(new JSplitPane(
+  val verticalSplit: JSplitPane = new JSplitPane(
     JSplitPane.VERTICAL_SPLIT,
     codeCanvasPane,
     consolePane
-    ),BorderLayout.CENTER)
+  )
+  verticalSplit.setDividerLocation(470)
+  contentPane.add(verticalSplit,BorderLayout.CENTER)
 
   runTaskAction.setEnabled(false)
   viewController.printDelegate = printDelegate
   viewController.syncToStartState()
-  //viewController.syncEnvironment()
-  gridPane.setViewportView(viewController.getView);
+  gridPane.setViewportView(viewController.getView)
 
   frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
   frame.pack

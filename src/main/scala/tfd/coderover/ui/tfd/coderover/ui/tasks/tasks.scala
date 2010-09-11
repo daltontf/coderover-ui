@@ -131,7 +131,7 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
 
       new Scenario(
         (scenarioElem \ "@title").text,
-          () => new GUIViewController(50,
+          () => new GUIViewController(45,
             createState(
                 getOrElse(scenarioStartX, startX, 2),
                 getOrElse(scenarioStartY, startY, 2),

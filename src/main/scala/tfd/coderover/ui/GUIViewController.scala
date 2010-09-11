@@ -60,17 +60,17 @@ class GUIViewController(
     	painter(image.getGraphics)
     	image
   }
-  
+
   private def buildBackground() = makePaintedImage(environment.sizeX * squareSize + 1, environment.sizeY * squareSize + 1, { g:Graphics =>
-	    	g.setColor(Color.BLACK)
-	    
-        for (i <- 0 to environment.sizeX) {
-       		g.drawLine(i * squareSize, 0, i * squareSize, environment.sizeX * squareSize - 1)
-       	}
-    	for (i <- 0 to environment.sizeY) {
-        	g.drawLine(0, i * squareSize, environment.sizeY * squareSize - 1, i * squareSize)
-        }
-  	})
+    g.setColor(Color.BLACK)
+
+    for (i <- 0 to environment.sizeX) {
+      g.drawLine(i * squareSize, 0, i * squareSize, environment.sizeY * squareSize - 1)
+    }
+    for (i <- 0 to environment.sizeY) {
+      g.drawLine(0, i * squareSize, environment.sizeX * squareSize - 1, i * squareSize)
+    }
+  })
 
   private def drawBackground() {
 		background.setImage(buildBackground)
@@ -92,8 +92,8 @@ class GUIViewController(
   def syncToStartState() {
     state = startState
 		transform = new AffineTransform()
-		transform.translate(state.gridX * 50, state.gridY * 50)
-		transform.rotate(state.directionIndex * (java.lang.Math.PI/2), 25, 25)
+		transform.translate(state.gridX * squareSize, state.gridY * squareSize)
+		transform.rotate(state.directionIndex * (java.lang.Math.PI/2), squareSize/2, squareSize/2)
 		robot.setTransform(transform)
 	}
 
@@ -113,7 +113,7 @@ class GUIViewController(
 
   override def executeMoveForward() = {
 	  super.executeMoveForward()
-	  transform.translate(0, -50)
+	  transform.translate(0, -squareSize)
     executeAnimation(500)
 	}
 
@@ -127,13 +127,13 @@ class GUIViewController(
 
 	override def turnRight() = {
 	  super.turnRight()
-	  transform.rotate(java.lang.Math.PI/2, 25, 25)
+	  transform.rotate(java.lang.Math.PI/2, squareSize/2, squareSize/2)
 	  executeAnimation(1000)
     }
   
 	override def turnLeft() = {
 	  super.turnLeft()
-	  transform.rotate(-java.lang.Math.PI/2, 25, 25)
+	  transform.rotate(-java.lang.Math.PI/2, squareSize/2, squareSize/2)
 	  executeAnimation(1000)
 	}
 
