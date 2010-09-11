@@ -1,8 +1,6 @@
 package tfd.coderover.ui
 
 import _root_.tfd.coderover._
-import java.awt.event.{ActionEvent, ItemListener, ItemEvent}
-
 import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter}
 
 import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComboBox, JLabel, JOptionPane, JPanel, JProgressBar, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JScrollPane, JSplitPane, JTextPane, JToolBar}
@@ -15,6 +13,7 @@ import tasks.{DeserializeTaskManager, TaskManager, Scenario}
 import xml.XML
 import javax.swing.text._
 import java.awt.{Rectangle, Color, Dimension, GridBagConstraints, GridBagLayout, Font, BorderLayout}
+import java.awt.event.{KeyEvent, ActionEvent, ItemListener, ItemEvent}
 
 class MainApplication() extends HasBindableProperties {
   import ThreadControl._
@@ -305,7 +304,7 @@ class MainApplication() extends HasBindableProperties {
   private val menu = new JMenu("File"); {
     import menu._
 
-    setMnemonic('F')
+    setMnemonic(KeyEvent.VK_F)
 
     def menuItem(action:Action, mnemonic:Char) = {
       val mi = new JMenuItem(action)
@@ -319,9 +318,15 @@ class MainApplication() extends HasBindableProperties {
     openSubMenu.add(menuItem(openTaskSetAction, 'T'))
     openSubMenu.add(menuItem(openCoralAction, 'C'))
     val saveSubMenu = new JMenu("Save")
-    openSubMenu.setMnemonic('S')
+    saveSubMenu.setMnemonic('S')
     add(saveSubMenu)
     saveSubMenu.add(menuItem(saveCoralAction, 'C'))
+
+    add(menuItem(new AbstractAction("Exit") {
+      def actionPerformed(e: ActionEvent) = {
+        System.exit(0);
+      }
+    }, 'x'))
   }
   menuBar.add(menu)
   frame.setJMenuBar(menuBar)
