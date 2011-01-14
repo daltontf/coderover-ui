@@ -3,7 +3,6 @@ package tfd.coderover.ui
 import _root_.tfd.coderover._
 import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter}
 
-import javax.swing.{AbstractAction, Action, DefaultComboBoxModel, ImageIcon, JButton, JComboBox, JLabel, JOptionPane, JPanel, JProgressBar, JFileChooser, JFrame, JMenuBar, JMenu, JMenuItem, JScrollPane, JSplitPane, JTextPane, JToolBar}
 import javax.swing.filechooser.{FileNameExtensionFilter}
 import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 import _root_.tfd.gui.swing.codesyntaxpane.CodeSyntaxDocument
@@ -12,8 +11,9 @@ import _root_.tfd.scala.properties.{HasBindableProperties}
 import tasks.{DeserializeTaskManager, TaskManager, Scenario}
 import xml.XML
 import javax.swing.text._
-import java.awt.{Rectangle, Color, Dimension, GridBagConstraints, GridBagLayout, Font, BorderLayout}
-import java.awt.event.{KeyEvent, ActionEvent, ItemListener, ItemEvent}
+import java.awt.event._
+import java.awt.{List =>_, _}
+import javax.swing._
 
 class MainApplication() extends HasBindableProperties {
   import ThreadControl._
@@ -266,7 +266,7 @@ class MainApplication() extends HasBindableProperties {
           scenarioIndex += 1
           onEDTLater {
             progressBar.setValue(scenarioIndex)
-            if (taskCompletionStatus.failed) {
+            if (failed) {
               progressBar.setForeground(Color.RED)
             }
           }
@@ -359,6 +359,8 @@ class MainApplication() extends HasBindableProperties {
         }
       }
     })
+    instructionLabel.setText("<html><center>" + taskManagerProperty.get.currentTask.description + "</center></html>")
+    glassPane.setVisible(true);
   }
 
   private val contentPane = frame.getContentPane
@@ -446,6 +448,80 @@ class MainApplication() extends HasBindableProperties {
   viewController.printDelegate = printDelegate
   viewController.syncToStartState()
   gridPane.setViewportView(viewController.getView)
+
+  val glassPane = new JPanel with MouseListener with MouseMotionListener with FocusListener with ComponentListener {
+      addMouseListener(this)
+      addMouseMotionListener(this)
+      addFocusListener(this)
+      addComponentListener(this)
+
+    def mouseReleased(e: MouseEvent) = {}
+
+    def mousePressed(e: MouseEvent) {}
+
+    def mouseMoved(e: MouseEvent) {}
+
+    def mouseExited(e: MouseEvent) {}
+
+    def mouseEntered(e: MouseEvent) {}
+
+    def mouseDragged(e: MouseEvent) {}
+
+    def mouseClicked(e: MouseEvent) {}
+
+    def focusLost(e: FocusEvent) {
+      if (isVisible()) {
+        requestFocus()
+      }
+    }
+
+    def focusGained(e: FocusEvent) {}
+
+    def componentShown(e: ComponentEvent) {}
+
+    def componentResized(e: ComponentEvent) {
+      setOpaque(false)
+    }
+    
+    def componentMoved(e: ComponentEvent) {}
+
+    def componentHidden(e: ComponentEvent) {}
+
+    override def paintComponent(g:Graphics) {
+      //Set the color to with red with a 50% alpha
+      g.setColor(new Color(1, 1, 1, 0.75f));
+
+      //Fill a rectangle with the 50% red color
+      g.fillRect(10, 10, this.getWidth() - 20, this.getHeight() - 20);
+   }  
+
+    override def setVisible(visible:Boolean) {
+      if (visible) {
+        requestFocus()
+      }
+      super.setVisible(visible);
+    }
+  }
+  glassPane.setLayout(new BorderLayout)
+  val instructionLabel = new JLabel
+  instructionLabel.setHorizontalAlignment(SwingConstants.CENTER)
+  glassPane.add(instructionLabel, BorderLayout.CENTER)
+  glassPane.add({
+    val pnl = new JPanel
+    pnl.setOpaque(false)
+    pnl.add({
+      val btn = new JButton("OK")
+      btn.addActionListener(new ActionListener() {
+        def actionPerformed(e: ActionEvent) = {
+          glassPane.setVisible(false)
+        }
+      })
+      btn
+    })
+    pnl
+  }, BorderLayout.SOUTH)
+  frame.setGlassPane(glassPane)
+  glassPane.setVisible(false)
 
   frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
   frame.pack

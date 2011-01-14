@@ -1,0 +1,43 @@
+PROC MARK_SQUARE {
+  IF ((($3 = 1)
+    OR (GET_SQUARE($1,$2) > $3)
+    OR (GET_SQUARE($1,$2) = 0)) 
+  AND NOT(OBSTRUCTED($1, $2))) {
+    STORE(($2 * 8) + $1, $3)
+    MARK_NEIGHBORS($1, $2, $3 + 1)
+  }
+}
+
+FUNC GET_SQUARE (
+  MEM(($2 * 8) + $1)
+)
+
+PROC MARK_NEIGHBORS {
+  MARK_SQUARE($1 - 1,$2    , $3)
+  MARK_SQUARE($1    ,$2 + 1, $3)
+  MARK_SQUARE($1 + 1,$2    , $3)
+  MARK_SQUARE($1    ,$2 - 1, $3)
+}
+
+PRED DONE( (X = 3) AND (Y = 3) )
+
+PROC MOVE_IF_LOWER {
+  IF   (NOT(OBSTRUCTED(X + $1, Y + $2)) 
+   AND (GET_SQUARE(X + $1, Y + $2) < GET_SQUARE(X, Y))) {
+    WHILE (NOT(DX = $1) OR NOT(DY = $2)) {
+      RIGHT     
+    }
+    FORWARD
+  }	  
+}
+
+MARK_SQUARE(3,3,1)
+
+WHILE NOT(DONE) {
+  MOVE_IF_LOWER(-1,0)
+  MOVE_IF_LOWER(0,1)
+  MOVE_IF_LOWER(1,0)
+  MOVE_IF_LOWER(0,-1)
+}
+
+

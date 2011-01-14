@@ -34,7 +34,7 @@ class GUIEnvironment(
 
   private[this] def closestVisibleEntity(entityString:String, x:Int, y:Int):Option[(Int,Int)] = {
     var closest:Option[(Int,Int)] = None
-    var closestDistance = 999999999.9
+    var closestDistance = Double.MaxValue
     for (locs <- visibleEntities.get(entityString);
          loc <- locs.iterator) {
       val locDistance = distance(x, y, loc._1, loc._2)

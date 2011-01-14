@@ -1,0 +1,15 @@
+PROC GO {
+  WHILE (((X + DX) > 9) OR NOT(PAINTED(X + DX, Y + DY))) {
+	RIGHT
+  }
+  IF  (((X + DX) <> (TOP / 100)) OR ((Y + DY) <> (TOP % 100))) {
+	REPLACE ((X * 100) + Y)
+	FORWARD
+  } ELSE {
+	RIGHT
+  }
+}
+PUSH ((X * 100) + Y)
+WHILE ((X <> 8) OR (Y <> 8)) {
+	GO
+}

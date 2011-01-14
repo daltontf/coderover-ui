@@ -1,0 +1,61 @@
+PRED PAINTABLE ( 	 
+    NOT(OBSTRUCTED($1, $2))
+AND NOT(PAINTED($1, $2))
+)
+
+PROC ROTATEDX {
+  WHILE NOT((DX = $1) AND (DY = $2)) {
+    RIGHT
+  }
+}
+
+PROC GO_UP {
+   ROTATEDX(0,-1)
+   FORWARD
+}
+
+PROC GO_DOWN {
+   ROTATEDX(0,1)
+   FORWARD
+}
+
+PROC GO_LEFT {
+   ROTATEDX(-1,0)
+   FORWARD
+}
+
+PROC GO_RIGHT {
+   ROTATEDX(1,0)
+   FORWARD
+}
+
+
+
+
+PROC DO_PAINT {
+  PAINT
+  IF (PAINTABLE(X, Y-1)) {
+    GO_UP
+    DO_PAINT
+    GO_DOWN
+  }
+  IF (PAINTABLE(X+1, Y)) {
+    GO_RIGHT
+    DO_PAINT
+    GO_LEFT
+  }
+  IF (PAINTABLE(X, Y+1)) {
+    GO_DOWN
+    DO_PAINT
+    GO_UP
+  }
+  IF (PAINTABLE(X-1, Y)) {
+    GO_LEFT
+    DO_PAINT
+    GO_RIGHT
+  }
+}
+
+DO_PAINT()
+
+

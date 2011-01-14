@@ -56,7 +56,7 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
   private def getOrElse[A](first:Option[A],second:Option[A], orElse:A) = first.getOrElse(second.getOrElse(orElse))
 
   private def parseStartState(xml:NodeSeq) =
-    (for (startState <- xml \ "start_state")
+    (for (startState <- xml \ "startState")
       yield (
           Some((startState \ "@x").text.toInt),
           Some((startState \ "@y").text.toInt),
@@ -106,12 +106,12 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
     title = titleElem.text
   }
   for (descriptionElem <- taskXML \ "description") {
-    description = descriptionElem.text
+    description = descriptionElem.mkString
   }
 
-  val isCompleteExpression = extractParsedBooleanExpression("is_complete", taskXML)
-  val postMoveForwardExpression = extractParsedBooleanExpression("post_move_forward", taskXML)
-  val (sizeX, sizeY) = parseCoordinate("grid_size", taskXML).headOption.getOrElse(None, None)
+  val isCompleteExpression = extractParsedBooleanExpression("isComplete", taskXML)
+  val postMoveForwardExpression = extractParsedBooleanExpression("postMoveForward", taskXML)
+  val (sizeX, sizeY) = parseCoordinate("gridSize", taskXML).headOption.getOrElse(None, None)
   val (startX, startY, startDir) = parseStartState(taskXML)
   val obstructions = parseLine("obstruction", taskXML)
   val painted = parseLine("paint", taskXML)
@@ -120,14 +120,14 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
 
   scenarios = (for (scenarioElem <- taskXML \ "scenario")
     yield {
-      val (scenarioSizeX, scenarioSizeY) = parseCoordinate("grid_size", scenarioElem).headOption.getOrElse(None, None)
+      val (scenarioSizeX, scenarioSizeY) = parseCoordinate("gridSize", scenarioElem).headOption.getOrElse(None, None)
       val (scenarioStartX, scenarioStartY, scenarioStartDir) = parseStartState(scenarioElem)
       val scenarioObstructions = parseLine("obstruction", scenarioElem)
       val scenarioPainted = parseLine("paint", scenarioElem)
       val scenarioTarget = extractTarget(parseCoordinate("target", scenarioElem).headOption.getOrElse(None, None))
       val scenarioFlags = parseCoordinate("flag", scenarioElem)
-      val scenarioIsCompleteExpression = extractParsedBooleanExpression("is_complete", scenarioElem)
-      val scenarioPostMoveForwardExpression = extractParsedBooleanExpression("post_move_forward", scenarioElem)
+      val scenarioIsCompleteExpression = extractParsedBooleanExpression("isComplete", scenarioElem)
+      val scenarioPostMoveForwardExpression = extractParsedBooleanExpression("postMoveForward", scenarioElem)
 
       new Scenario(
         (scenarioElem \ "@title").text,

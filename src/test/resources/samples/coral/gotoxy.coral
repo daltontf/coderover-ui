@@ -1,0 +1,27 @@
+PROC GOTOXY {
+  PUSH ($1 - X)
+  IF (TOP > 0) {
+    WHILE (DX <> 1) {
+	  RIGHT
+    }
+  } ELSE IF (TOP < 0) {
+    WHILE (DX <> -1) {
+	  RIGHT
+    }
+  }
+  REPEAT ABS(TOP){ FORWARD }
+  POP
+  PUSH ($2 - Y)
+  IF (TOP > 0) {
+    WHILE (DY <> 1) {
+	  RIGHT
+    }
+  } ELSE IF (TOP < 0) {
+    WHILE (DY <> -1) {
+	  RIGHT
+    }
+  }
+  REPEAT ABS(TOP){ FORWARD }
+  POP
+}
+GOTOXY(5,5)

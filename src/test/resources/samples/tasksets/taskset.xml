@@ -1,0 +1,104 @@
+<taskSet>
+<task>
+  <title>Goto 5,5</title>
+  <description>Goto 5,5</description>
+  <gridSize x="8" y="10"/>
+  <isComplete>((X = 5) AND (Y = 5))</isComplete>
+  <startState x="2" y="2" dir="2"/>
+  <target x="5" y="5"/>
+  <scenario title="Start at 2,2 - face up">
+	<startState x="2" y="2" dir="0"/>
+  </scenario> 
+  <scenario title="Start at 2,8 - face right">
+	<startState x="2" y="8" dir="1"/>
+  </scenario>
+  <scenario title="Start at 7,2 - face down">
+	<startState x="7" y="2" dir="2"/>
+  </scenario>
+  <scenario title="Start at 7,8 - face left">
+	<startState x="7" y="8" dir="3"/>
+  </scenario>
+</task>
+
+<task>
+  <title>Goto Flag</title>
+  <description>Goto Flag</description>
+  <gridSize x="8" y="10"/>
+  <isComplete>((X = 3) AND (Y = 7))</isComplete>
+  <flag x="3" y="7"/>
+  <startState x="2" y="2" dir="2"/>
+  <scenario title="Start at 2,2 - face up">
+	<startState x="2" y="2" dir="0"/>
+  </scenario> 
+  <scenario title="Start at 2,8 - face right">
+	<startState x="2" y="8" dir="1"/>
+  </scenario>
+  <scenario title="Start at 7,2 - face down">
+	<startState x="7" y="2" dir="2"/>
+  </scenario>
+  <scenario title="Start at 7,8 - face left">
+	<startState x="7" y="8" dir="3"/>
+  </scenario>
+</task>
+
+<task>
+  <title>Follow The Yellow Brick Road</title>
+  <description>Navigate to destination touching only <u>yellow</u> squares</description>
+  <gridSize x="8" y="10"/>
+  <target x="6" y="8"/>
+  <startState x="0" y="2" dir="0"/>
+  <isComplete>((X = 6) AND (Y = 8))</isComplete>
+  <postMoveForward>NOT(PAINTED(X,Y))</postMoveForward>
+  <scenario title="Only Scenario">
+		<paint x="0" y="2" dy="-2"/>
+		<paint x="0" y="1" dx="7"/>
+		<paint x="7" y="1" dy="5"/>
+		<paint x="7" y="5" dx="-3"/>
+		<paint x="4" y="5" dy="-2"/>
+		<paint x="4" y="3" dx="-3"/>
+		<paint x="2" y="4" dy="1"/>
+		<paint x="1" y="4" dy="6"/>
+		<paint x="1" y="9" dx="3"/>
+		<paint x="3" y="9" dy="-3"/>
+		<paint x="3" y="7" dx="3"/>
+		<paint x="6" y="7" dy="2"/>
+  </scenario>
+</task>
+
+<task>
+  <title>Paint The Town</title>
+  <description>Paint every paintable square</description>
+  <gridSize x="5" y="5"/>
+  <startState x="1" y="1" dir="3"/>
+  <isComplete>(PAINTED(0,0) AND PAINTED(0,1) AND PAINTED(0,2) AND PAINTED(0,3) AND PAINTED(0,4) 
+            AND PAINTED(1,1) AND PAINTED(1,2) AND PAINTED(1,4)
+		    AND PAINTED(2,0) AND PAINTED(2,4)
+			AND PAINTED(3,0) AND PAINTED(3,2) AND PAINTED(3,3) AND PAINTED(3,4)    
+			AND PAINTED(4,0) AND PAINTED(4,1) AND PAINTED(4,2) AND PAINTED(4,4))</isComplete>
+  <scenario title="Scenario 1">
+	<obstruction x="2" y="1" dy="3"/>
+	<obstruction x="2" y="1" dx="2"/>
+	<obstruction x="2" y="3" dx="-2"/>
+	<obstruction x="1" y="0" dx="1"/>
+	<obstruction x="4" y="3" dx="1"/>
+  </scenario>  
+</task>
+<task>
+  <title>Find The Path</title>
+  <description>Goto 3,3 with obstructions</description>
+  <gridSize x="5" y="5"/>
+  <isComplete>((X = 3) AND (Y = 3))</isComplete>
+  <target x="3" y="3"/>
+  <scenario title="Scenario 1">
+	<startState x="1" y="2" dir="0"/>
+	<obstruction x="1" y="3" dy="1"/>
+	<obstruction x="2" y="2" dy="1"/>
+	<obstruction x="3" y="1" dy="1"/>
+  </scenario> 
+  <scenario title="Scenario 2">
+	<startState x="1" y="1" dir="0"/>
+	<obstruction x="1" y="2" dx="3"/>
+	<obstruction x="2" y="1" dy="3"/>
+  </scenario>
+</task>
+</taskSet>

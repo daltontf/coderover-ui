@@ -25,6 +25,7 @@ class GUIViewController(
 	private var transform:AffineTransform = _
       
 	private val canvas = new PCanvas() {
+
     override def getToolTipText(event: MouseEvent) = {
       val x = event.getX() / squareSize
       val y = event.getY() / squareSize
@@ -78,10 +79,8 @@ class GUIViewController(
 
   private def renderPaint(color:Color, gridX:Int, gridY:Int) {
     val g = background.getImage.getGraphics
-		val x = gridX * squareSize
-		val y = gridY * squareSize
 		g.setColor(color)
-		g.fillRect(x + 1, y + 1, squareSize-1, squareSize-1)
+		g.fillRect(gridX * squareSize + 1, gridY * squareSize + 1, squareSize-1, squareSize-1)
   }
 
   override def paint() {
