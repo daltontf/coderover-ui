@@ -63,8 +63,8 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
           Some((startState \ "@dir").text.toInt)
       )).headOption.getOrElse(None, None, None)
 
-  private def parseCoordinate(attribute:String, xml:NodeSeq) =
-      (for (elem <- xml \ attribute)
+  private def parseCoordinate(element:String, xml:NodeSeq) =
+      (for (elem <- xml \ element)
         yield (
           Some((elem \ "@x").text.toInt),
           Some((elem \ "@y").text.toInt)
@@ -126,6 +126,12 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
       val scenarioPainted = parseLine("paint", scenarioElem)
       val scenarioTarget = extractTarget(parseCoordinate("target", scenarioElem).headOption.getOrElse(None, None))
       val scenarioFlags = parseCoordinate("flag", scenarioElem)
+      val hidden = (for (hidden <- scenarioElem \ "hidden")
+                      yield  (
+                        ((hidden \ "@name").text,
+                        (for (location <- hidden \ "location") yield (((location \ "@x").text.toInt, (location \ "@y").text.toInt))).toSet)
+                      )
+                    ).toMap
       val scenarioIsCompleteExpression = extractParsedBooleanExpression("isComplete", scenarioElem)
       val scenarioPostMoveForwardExpression = extractParsedBooleanExpression("postMoveForward", scenarioElem)
 
@@ -145,7 +151,7 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
                 Map("FLAG" -> (for (coord <-  flags ++ scenarioFlags;
                      x <- coord._1;
                      y <- coord._2) yield (x,y)).toSet),
-                Map.empty[String, Set[(Int,Int)]]
+                hidden
             ), if (scenarioPostMoveForwardExpression.isDefined) scenarioPostMoveForwardExpression else postMoveForwardExpression,
             DefaultConstraints
             )
