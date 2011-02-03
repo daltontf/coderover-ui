@@ -1,0 +1,3 @@
+h1. Code Rover UI
+
+This provides an graphical environment where users can use CORAL (COde Rover Automation Language) to guide a robot in grid.

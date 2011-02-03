@@ -6,7 +6,6 @@ import java.io.{BufferedReader, BufferedWriter, File, FileReader, FileWriter}
 import javax.swing.filechooser.{FileNameExtensionFilter}
 import _root_.tfd.gui.swing.CutCopyPastePopupSupport
 import _root_.tfd.gui.swing.codesyntaxpane.CodeSyntaxDocument
-import _root_.tfd.scala.properties.{HasBindableProperties}
 
 import tasks.{DeserializeTaskManager, TaskManager, Scenario}
 import xml.XML
@@ -14,15 +13,16 @@ import javax.swing.text._
 import java.awt.event._
 import java.awt.{List =>_, _}
 import javax.swing._
+import tfd.scala.events.EventSource
 
-class MainApplication() extends HasBindableProperties {
+class MainApplication() {
   import ThreadControl._
 
   private var currentFile:File = _
 
-  private val taskManagerProperty = BindableProperty[TaskManager]("taskManager", null)
+  private var taskManager:Option[TaskManager] = None
 
-  private val currentScenarioProperty = BindableProperty[Scenario]("currentScenario", null)
+  private var currentScenario:Option[Scenario] = None
 
   private var currentEnvironment:GUIEnvironment = new GUIEnvironment(8, 10, Set.empty, Set.empty, None, Map.empty, Map.empty)
 
@@ -90,12 +90,34 @@ class MainApplication() extends HasBindableProperties {
     }
   }
 
+  class Event
+  sealed case class NewTaskManager(taskManager:TaskManager) extends Event
+  sealed case class NewCurrentScenario(scenario:Scenario) extends Event
+
+  val events = new EventSource[Event]
+
+  events.add {
+    case NewTaskManager(tm) => {
+      taskManager = Some(tm)
+      runTaskAction.setEnabled(true)
+      updateTaskAndScenarios
+    }
+    case NewCurrentScenario(scenario) => {
+      currentScenario = Some(scenario)
+      viewController = scenario.createController()
+      currentEnvironment = viewController.environment
+      viewController.printDelegate = printDelegate
+      viewController.syncToStartState()
+      gridPane.setViewportView(viewController.getView)
+    }
+  }
+
   private lazy val openTaskSetAction = new AbstractAction("Task Set") {
     override def actionPerformed(ae:ActionEvent) {
       loadFile("XML Task Set Files", "xml") { file =>
           viewController.stop
           fork {
-              taskManagerProperty := DeserializeTaskManager(XML.loadFile(file))
+              events.fire(NewTaskManager(DeserializeTaskManager(XML.loadFile(file))))
           }
       }
     }
@@ -167,7 +189,7 @@ class MainApplication() extends HasBindableProperties {
     override def actionPerformed(ae:ActionEvent) {
       progressBar.setValue(0)
       progressBar.setMinimum(0)
-      progressBar.setMaximum(taskManagerProperty.get.currentTask.scenarios.length)
+      progressBar.setMaximum(taskManager.get.currentTask.scenarios.length)
       progressBar.setForeground(Color.GREEN)
       new Thread(new RunTaskWorker()).start
     }
@@ -177,33 +199,35 @@ class MainApplication() extends HasBindableProperties {
 
     protected class TaskCompletionStatus(evaluationResult:ResultOrAbend[Any]) {
       val stopped = viewController.stopped
-      val runningTask = (taskManagerProperty.get != null)
-      val complete = if (runningTask) currentScenarioProperty.get.isComplete(currentEnvironment, viewController.currentState) else false
-      private[this] val sb = new StringBuffer()
-      if (runningTask) {
-        sb.append(currentScenarioProperty.get)
-        sb.append(" - ")
-      }
-      sb.append(
-        if (stopped) {
-          "Stopped by user"
-        } else {
-          if (runningTask) {
-            if (evaluationResult.abend == None) {
-              if (complete) {
-                "SUCCESS !!"
+      val runningTask = (taskManager != None)
+      val complete = if (runningTask) currentScenario.get.isComplete(currentEnvironment, viewController.currentState) else false
+      val message = {
+        val sb = new StringBuilder()
+        if (runningTask) {
+          sb.append(currentScenario)
+          sb.append(" - ")
+        }
+        sb.append(
+          if (stopped) {
+            "Stopped by user"
+          } else {
+            if (runningTask) {
+              if (evaluationResult.abend == None) {
+                if (complete) {
+                  "SUCCESS !!"
+                } else {
+                  "FAILED !!"
+                }
               } else {
-                "FAILED !!"
+                evaluationResult.abend.get.message
               }
             } else {
-              evaluationResult.abend.get.message
+              ""
             }
-          } else {
-            "" 
           }
-        }
-      )
-      val message = sb.toString
+          )
+        sb
+      }.toString
       val failed = (stopped || (runningTask && !complete))
     }
 
@@ -240,7 +264,7 @@ class MainApplication() extends HasBindableProperties {
          viewController.repaint()
          onEDTLater {
            runAction.setEnabled(true)
-           runTaskAction.setEnabled(taskManagerProperty.get != null)
+           runTaskAction.setEnabled(taskManager != None)
            scenarioCombo.setEnabled(true)
            stopAction.setEnabled(false)
          }
@@ -257,7 +281,7 @@ class MainApplication() extends HasBindableProperties {
       if (parseResult.successful) {
         var scenarioIndex = 0
         var failed = false
-        while (scenarioIndex < taskManagerProperty.get.currentTask.scenarios.length && !failed) {
+        while (scenarioIndex < taskManager.get.currentTask.scenarios.length && !failed) {
           onEDTWait {
             scenarioCombo.setSelectedIndex(scenarioIndex)
           }
@@ -272,7 +296,7 @@ class MainApplication() extends HasBindableProperties {
           }
         }
         if (!failed) {
-           taskManagerProperty.get.nextTask()
+           taskManager.get.nextTask()
            updateTaskAndScenarios()
         }
       }
@@ -335,32 +359,21 @@ class MainApplication() extends HasBindableProperties {
   private val taskLabel = new JLabel()
   private val scenarioCombo = new JComboBox()
 
-  currentScenarioProperty.onChange { scenario =>
-    viewController = scenario.createController()
-    currentEnvironment = viewController.environment
-    viewController.printDelegate = printDelegate
-    viewController.syncToStartState()
-    gridPane.setViewportView(viewController.getView)
-  }
-
-  taskManagerProperty.onChange { taskManager =>
-    runTaskAction.setEnabled(true)
-    updateTaskAndScenarios       
-  }
-
   def updateTaskAndScenarios() {
-    taskLabel.setText(taskManagerProperty.get.currentTask.toString)
-    currentScenarioProperty.set(taskManagerProperty.get.currentTask.scenarios(0))
-    scenarioCombo.setModel(new DefaultComboBoxModel(taskManagerProperty.get.currentTask.scenarios.toArray.asInstanceOf[Array[Object]]))
-    scenarioCombo.addItemListener(new ItemListener() {
-      override def itemStateChanged(ie:ItemEvent) {
-        if (ie.getStateChange == ItemEvent.SELECTED) {
-           currentScenarioProperty.set(ie.getItem().asInstanceOf[Scenario])
+    taskManager.foreach {tm =>
+      taskLabel.setText(tm.currentTask.toString)
+      events.fire(NewCurrentScenario(tm.currentTask.scenarios(0)))
+      scenarioCombo.setModel(new DefaultComboBoxModel(tm.currentTask.scenarios.toArray.asInstanceOf[Array[Object]]))
+      scenarioCombo.addItemListener(new ItemListener() {
+        override def itemStateChanged(ie:ItemEvent) {
+          if (ie.getStateChange == ItemEvent.SELECTED) {
+            events.fire(NewCurrentScenario(ie.getItem().asInstanceOf[Scenario]))
+          }
         }
-      }
-    })
-    instructionLabel.setText("<html><center>" + taskManagerProperty.get.currentTask.description + "</center></html>")
-    glassPane.setVisible(true);
+      })
+      instructionLabel.setText("<html><center>" + tm.currentTask.description + "</center></html>")
+      glassPane.setVisible(true);
+    }
   }
 
   private val contentPane = frame.getContentPane

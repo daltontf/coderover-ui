@@ -74,9 +74,14 @@
             <artifactId>codesyntaxpane</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
-        <dependency>
+        <!--dependency>
             <groupId>tfd.scala.properties</groupId>
             <artifactId>scala-properties</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency-->
+        <dependency>
+            <groupId>tfd.scala.events</groupId>
+            <artifactId>scala-events</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
