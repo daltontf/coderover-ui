@@ -13,6 +13,7 @@ import javax.swing.text._
 import java.awt.event._
 import java.awt.{List =>_, _}
 import javax.swing._
+import border.EmptyBorder
 import tfd.scala.events.EventSource
 
 class MainApplication() {
@@ -90,26 +91,23 @@ class MainApplication() {
     }
   }
 
-  class Event
-  sealed case class NewTaskManager(taskManager:TaskManager) extends Event
-  sealed case class NewCurrentScenario(scenario:Scenario) extends Event
+  val newTaskManager = new EventSource[TaskManager]
+  val newCurrentScenario = new EventSource[Scenario]
 
-  val events = new EventSource[Event]
+  newTaskManager.foreach { tm =>
+    taskManager = Some(tm)
+    runTaskAction.setEnabled(true)
+    scenarioCombo.setEnabled(true)
+    updateTaskAndScenarios
+  }
 
-  events.add {
-    case NewTaskManager(tm) => {
-      taskManager = Some(tm)
-      runTaskAction.setEnabled(true)
-      updateTaskAndScenarios
-    }
-    case NewCurrentScenario(scenario) => {
-      currentScenario = Some(scenario)
-      viewController = scenario.createController()
-      currentEnvironment = viewController.environment
-      viewController.printDelegate = printDelegate
-      viewController.syncToStartState()
-      gridPane.setViewportView(viewController.getView)
-    }
+  newCurrentScenario.foreach { scenario =>
+    currentScenario = Some(scenario)
+    viewController = scenario.createController()
+    currentEnvironment = viewController.environment
+    viewController.printDelegate = printDelegate
+    viewController.syncToStartState()
+    gridPane.setViewportView(viewController.getView)
   }
 
   private lazy val openTaskSetAction = new AbstractAction("Task Set") {
@@ -117,12 +115,11 @@ class MainApplication() {
       loadFile("XML Task Set Files", "xml") { file =>
           viewController.stop
           fork {
-              events.fire(NewTaskManager(DeserializeTaskManager(XML.loadFile(file))))
+              newTaskManager.fire(DeserializeTaskManager(XML.loadFile(file)))
           }
       }
     }
   }
-
 
   private lazy val newAction = new AbstractAction("New") {
     override def actionPerformed(ae:ActionEvent) {
@@ -154,10 +151,14 @@ class MainApplication() {
   private lazy val saveCoralAction = new AbstractAction("CORAL") {
     import javax.swing.JOptionPane._
 
+    private lazy val chooser = {
+      val it = new JFileChooser
+      it.setFileFilter(new FileNameExtensionFilter("CORAL Files", "coral"))
+      it
+    }
+
     override def actionPerformed(ae:ActionEvent) {
-      val chooser = new JFileChooser
-      chooser.setFileFilter(new FileNameExtensionFilter("CORAL Files", "coral"))
-      if (chooser.showSaveDialog(frame) == JFileChooser.APPROVE_OPTION) {
+       if (chooser.showSaveDialog(frame) == JFileChooser.APPROVE_OPTION) {
         val selectedFile = chooser.getSelectedFile
         val file = if (selectedFile.getName.indexOf(".") >= 0) {
           chooser.getSelectedFile
@@ -204,31 +205,31 @@ class MainApplication() {
       val message = {
         val sb = new StringBuilder()
         if (runningTask) {
-          sb.append(currentScenario)
+          sb.append(currentScenario.get)
           sb.append(" - ")
         }
         sb.append(
           if (stopped) {
             "Stopped by user"
           } else {
-            if (runningTask) {
-              if (evaluationResult.abend == None) {
+            if (evaluationResult.abend == None) {
+              if (runningTask) {
                 if (complete) {
                   "SUCCESS !!"
                 } else {
                   "FAILED !!"
                 }
               } else {
-                evaluationResult.abend.get.message
+                ""
               }
             } else {
-              ""
+              evaluationResult.abend.get.message
             }
           }
           )
         sb
       }.toString
-      val failed = (stopped || (runningTask && !complete))
+      val failed = (stopped || evaluationResult.abend != None || (runningTask && !complete))
     }
 
     def doRun()
@@ -265,7 +266,7 @@ class MainApplication() {
          onEDTLater {
            runAction.setEnabled(true)
            runTaskAction.setEnabled(taskManager != None)
-           scenarioCombo.setEnabled(true)
+           scenarioCombo.setEnabled(taskManager != None)
            stopAction.setEnabled(false)
          }
       }
@@ -362,12 +363,12 @@ class MainApplication() {
   def updateTaskAndScenarios() {
     taskManager.foreach {tm =>
       taskLabel.setText(tm.currentTask.toString)
-      events.fire(NewCurrentScenario(tm.currentTask.scenarios(0)))
+      newCurrentScenario.fire(tm.currentTask.scenarios(0))
       scenarioCombo.setModel(new DefaultComboBoxModel(tm.currentTask.scenarios.toArray.asInstanceOf[Array[Object]]))
       scenarioCombo.addItemListener(new ItemListener() {
         override def itemStateChanged(ie:ItemEvent) {
           if (ie.getStateChange == ItemEvent.SELECTED) {
-            events.fire(NewCurrentScenario(ie.getItem().asInstanceOf[Scenario]))
+            newCurrentScenario.fire(ie.getItem().asInstanceOf[Scenario])
           }
         }
       })
@@ -458,63 +459,12 @@ class MainApplication() {
   contentPane.add(verticalSplit,BorderLayout.CENTER)
 
   runTaskAction.setEnabled(false)
+  scenarioCombo.setEnabled(false)
   viewController.printDelegate = printDelegate
   viewController.syncToStartState()
   gridPane.setViewportView(viewController.getView)
 
-  val glassPane = new JPanel with MouseListener with MouseMotionListener with FocusListener with ComponentListener {
-      addMouseListener(this)
-      addMouseMotionListener(this)
-      addFocusListener(this)
-      addComponentListener(this)
-
-    def mouseReleased(e: MouseEvent) = {}
-
-    def mousePressed(e: MouseEvent) {}
-
-    def mouseMoved(e: MouseEvent) {}
-
-    def mouseExited(e: MouseEvent) {}
-
-    def mouseEntered(e: MouseEvent) {}
-
-    def mouseDragged(e: MouseEvent) {}
-
-    def mouseClicked(e: MouseEvent) {}
-
-    def focusLost(e: FocusEvent) {
-      if (isVisible()) {
-        requestFocus()
-      }
-    }
-
-    def focusGained(e: FocusEvent) {}
-
-    def componentShown(e: ComponentEvent) {}
-
-    def componentResized(e: ComponentEvent) {
-      setOpaque(false)
-    }
-    
-    def componentMoved(e: ComponentEvent) {}
-
-    def componentHidden(e: ComponentEvent) {}
-
-    override def paintComponent(g:Graphics) {
-      //Set the color to with red with a 50% alpha
-      g.setColor(new Color(1, 1, 1, 0.75f));
-
-      //Fill a rectangle with the 50% red color
-      g.fillRect(10, 10, this.getWidth() - 20, this.getHeight() - 20);
-   }  
-
-    override def setVisible(visible:Boolean) {
-      if (visible) {
-        requestFocus()
-      }
-      super.setVisible(visible);
-    }
-  }
+  val glassPane = new GlassPane
   glassPane.setLayout(new BorderLayout)
   val instructionLabel = new JLabel
   instructionLabel.setHorizontalAlignment(SwingConstants.CENTER)
@@ -534,6 +484,7 @@ class MainApplication() {
     pnl
   }, BorderLayout.SOUTH)
   frame.setGlassPane(glassPane)
+  glassPane.setBorder(BorderFactory.createCompoundBorder(new EmptyBorder(30,30,30,30), BorderFactory.createLineBorder(Color.BLACK, 1)))
   glassPane.setVisible(false)
 
   frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
