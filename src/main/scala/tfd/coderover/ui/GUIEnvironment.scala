@@ -28,33 +28,19 @@ class GUIEnvironment(
 
   override def isObstructed(x: Int, y: Int) = obstructed.contains((x,y))
 
-  private[this] def distance(x1:Int, y1:Int, x2:Int, y2:Int) = {
-    sqrt(abs(x2 - x1)^2 + abs(y2 - y1)^2)
-  }
+  private def findEntity(entity: String, index:Int):Option[(Int, Int)] =
+    for (set <- visibleEntities.get(entity);
+         pair <- set.toIndexedSeq.lift(index)) yield (pair)
 
-  private[this] def closestVisibleEntity(entityString:String, x:Int, y:Int):Option[(Int,Int)] = {
-    var closest:Option[(Int,Int)] = None
-    var closestDistance = Double.MaxValue
-    for (locs <- visibleEntities.get(entityString);
-         loc <- locs.iterator) {
-      val locDistance = distance(x, y, loc._1, loc._2)
-      if (locDistance  < closestDistance) {
-        closest = Some(loc)
-        closestDistance = locDistance
-      }
-    }
-    closest
-  }
-
-  override def distanceX(entity:String, x:Int, y:Int):Option[Int] =
-    closestVisibleEntity(entity, x, y) match {
+  override def distanceX(entity:String, index:Int, x:Int, y:Int):Option[Int] =
+    findEntity(entity, index) match {
       case Some((thatX, _)) => Some(x - thatX)
       case None => None
   }
 
-  override def distanceY(entity:String, x:Int, y:Int):Option[Int] =
-    closestVisibleEntity(entity, x, y) match {
-      case Some((_, thatY)) => Some(y - thatY) 
+  override def distanceY(entity:String, index:Int, x:Int, y:Int):Option[Int] =
+     findEntity(entity, index) match {
+      case Some((_, thatY)) => Some(y - thatY)
       case None => None
   }
 

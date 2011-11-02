@@ -28,7 +28,7 @@ object DeserializeTaskManager extends (NodeSeq => TaskManager) {
   }
 }
 
-abstract class Task() {
+abstract trait Task {
   var title:String = ""
   var description:String = ""
   var scenarios:List[Scenario] = _
@@ -38,10 +38,11 @@ abstract class Task() {
   def createState(x:Int, y:Int, direction:Int) = new State(x, y, direction)
 }
 
-abstract class Scenario(
-  val description:String,
-  val createController:() => GUIViewController
-) {
+abstract trait Scenario {
+  val description:String
+
+  def createController():GUIViewController
+
   override def toString = description
 
   def isComplete(environment:GUIEnvironment, state:State):Boolean
@@ -135,27 +136,29 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
       val scenarioIsCompleteExpression = extractParsedBooleanExpression("isComplete", scenarioElem)
       val scenarioPostMoveForwardExpression = extractParsedBooleanExpression("postMoveForward", scenarioElem)
 
-      new Scenario(
-        (scenarioElem \ "@title").text,
-          () => new GUIViewController(45,
-            createState(
-                getOrElse(scenarioStartX, startX, 2),
-                getOrElse(scenarioStartY, startY, 2),
-                getOrElse(scenarioStartDir, startDir, 0)
-            ),new GUIEnvironment(
-                getOrElse(scenarioSizeX, sizeX, 10),
-                getOrElse(scenarioSizeY, sizeY, 10),
-                obstructions ++ scenarioObstructions,
-                painted ++ scenarioPainted,
-                if (scenarioTarget.isDefined) scenarioTarget else target,
-                Map("FLAG" -> (for (coord <-  flags ++ scenarioFlags;
+      new Scenario {
+            override val description = (scenarioElem \ "@title").text
+
+            override def createController() =
+              new GUIViewController(45,
+                createState(
+                  getOrElse(scenarioStartX, startX, 2),
+                  getOrElse(scenarioStartY, startY, 2),
+                  getOrElse(scenarioStartDir, startDir, 0)
+              ),new GUIEnvironment(
+                  getOrElse(scenarioSizeX, sizeX, 10),
+                  getOrElse(scenarioSizeY, sizeY, 10),
+                  obstructions ++ scenarioObstructions,
+                  painted ++ scenarioPainted,
+                  if (scenarioTarget.isDefined) scenarioTarget else target,
+                  Map("FLAG" -> (for (coord <-  flags ++ scenarioFlags;
                      x <- coord._1;
                      y <- coord._2) yield (x,y)).toSet),
-                hidden
-            ), if (scenarioPostMoveForwardExpression.isDefined) scenarioPostMoveForwardExpression else postMoveForwardExpression,
-            DefaultConstraints
+                  hidden
+              ), if (scenarioPostMoveForwardExpression.isDefined) scenarioPostMoveForwardExpression else postMoveForwardExpression,
+              DefaultConstraints
             )
-        ) { 
+
             override def isComplete(environment:GUIEnvironment, state:State) = {
               val expression = if (scenarioIsCompleteExpression.isDefined) scenarioIsCompleteExpression else isCompleteExpression
               if (expression.isDefined) {
