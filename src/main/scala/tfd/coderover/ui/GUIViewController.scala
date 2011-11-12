@@ -171,13 +171,14 @@ class GUIViewController(
   }
 
   for (elements <- environment.visibleEntities.get("FLAG");
-       coordinates <- elements) {
+       (coordinates, index) <- elements.zipWithIndex) {
     placePImage(new PImage(makePaintedImage(squareSize, squareSize, { g:Graphics =>
       g.setColor(Color.BLUE)
       val oneFourth = squareSize / 4;
       g.drawLine(oneFourth, 5, oneFourth, squareSize - 5);
       g.drawLine(oneFourth, 5, squareSize-oneFourth, oneFourth);
       g.drawLine(squareSize-oneFourth, oneFourth, oneFourth, oneFourth * 2);
+      g.drawString("" + (index + 1), squareSize / 2, squareSize - oneFourth)
     })), coordinates)
   }
 

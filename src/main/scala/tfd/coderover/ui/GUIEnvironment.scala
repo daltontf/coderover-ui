@@ -51,6 +51,8 @@ class GUIEnvironment(
     entityLocations.contains((x, y - 1)) ||
     entityLocations.contains((x, y + 1))
   }
+
+  override def count(entity:String) = visibleEntities.get(entity).map(_.size)
   
   def reset() {
     painted = Array.ofDim[Boolean](sizeX, sizeY)
