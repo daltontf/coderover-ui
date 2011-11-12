@@ -6,7 +6,6 @@ import xml.{XML, Node, Elem, NodeSeq}
 import collection.immutable.{HashSet, HashMap}
 
 class TaskManager(tasks:Seq[Task]) {
-  private val taskArray:Array[Task] = tasks.toArray
   private var currentTaskIndex = 0
 
   var allTasksComplete = false
@@ -24,18 +23,16 @@ class TaskManager(tasks:Seq[Task]) {
 
 object DeserializeTaskManager extends (NodeSeq => TaskManager) {
   override def apply(xml: NodeSeq) = {
-    new TaskManager(for (taskXML <- xml \ "task") yield (new XmlTask(taskXML)))
+    new TaskManager(for (taskXML <- xml \ "task") yield (CreateTaskFromXML(taskXML)))
   }
 }
 
-abstract trait Task {
-  var title:String = ""
-  var description:String = ""
-  var scenarios:List[Scenario] = _
-
+class Task (
+  val title:String,
+  val description:String,
+  val scenarios:List[Scenario])
+{
   override def toString() = title
-
-  def createState(x:Int, y:Int, direction:Int) = new State(x, y, direction)
 }
 
 abstract trait Scenario {
@@ -48,28 +45,39 @@ abstract trait Scenario {
   def isComplete(environment:GUIEnvironment, state:State):Boolean
 }
 
-class XmlTask(taskXML:NodeSeq) extends Task() {
+object CreateTaskFromXML extends (NodeSeq => Task) {
   lazy private val evaluator = new Evaluator()
   lazy private val languageParser = new LanguageParser()
 
-  private var constraints = DefaultConstraints;
+  private val constraints = DefaultConstraints;
 
-  private def getOrElse[A](first:Option[A],second:Option[A], orElse:A) = first.getOrElse(second.getOrElse(orElse))
+  private def extractTarget(xy:(Option[Int], Option[Int])) = {
+    for (xp <- xy._1; yp <- xy._2) yield((xp,yp))
+  }
+
+  private def extractParsedBooleanExpression(element:String, xml:NodeSeq) =
+    for (
+      isCompleteElem <- (xml \ element).headOption
+    ) yield (
+      languageParser.parse(languageParser.booleanExpression, isCompleteElem.text).get
+    )
+
+  private def getOrElse[A](first:Option[A], second:Option[A], orElse:A) = first.getOrElse(second.getOrElse(orElse))
 
   private def parseStartState(xml:NodeSeq) =
     (for (startState <- xml \ "startState")
-      yield (
-          Some((startState \ "@x").text.toInt),
-          Some((startState \ "@y").text.toInt),
-          Some((startState \ "@dir").text.toInt)
-      )).headOption.getOrElse(None, None, None)
+    yield (
+        Some((startState \ "@x").text.toInt),
+        Some((startState \ "@y").text.toInt),
+        Some((startState \ "@dir").text.toInt)
+        )).headOption.getOrElse(None, None, None)
 
   private def parseCoordinate(element:String, xml:NodeSeq) =
-      (for (elem <- xml \ element)
-        yield (
-          Some((elem \ "@x").text.toInt),
-          Some((elem \ "@y").text.toInt)
-      ))
+    (for (elem <- xml \ element)
+    yield (
+        Some((elem \ "@x").text.toInt),
+        Some((elem \ "@y").text.toInt)
+        ))
 
   private def parseLine(element:String, xml:NodeSeq) = {
     val set = new collection.mutable.HashSet[(Int,Int)]()
@@ -92,82 +100,70 @@ class XmlTask(taskXML:NodeSeq) extends Task() {
     set.toSet
   }
 
-  private def extractTarget(xy:(Option[Int], Option[Int])) = {
-    for (xp <- xy._1; yp <- xy._2) yield((xp,yp))
-  }
+  private def createState(x:Int, y:Int, direction:Int) = new State(x, y, direction)
 
-  private def extractParsedBooleanExpression(element:String, xml:NodeSeq) =
-    for (
-      isCompleteElem <- (xml \ element).headOption
-    ) yield (
-      languageParser.parse(languageParser.booleanExpression, isCompleteElem.text).get
-    )
 
-  for (titleElem <- taskXML \ "title") {
-    title = titleElem.text
-  }
-  for (descriptionElem <- taskXML \ "description") {
-    description = descriptionElem.mkString
-  }
+  override def apply(taskXML:NodeSeq) = {
+    val isCompleteExpression = extractParsedBooleanExpression("isComplete", taskXML)
+    val postMoveForwardExpression = extractParsedBooleanExpression("postMoveForward", taskXML)
+    val (sizeX, sizeY) = parseCoordinate("gridSize", taskXML).headOption.getOrElse(None, None)
+    val (startX, startY, startDir) = parseStartState(taskXML)
+    val obstructions = parseLine("obstruction", taskXML)
+    val painted = parseLine("paint", taskXML)
+    val target = extractTarget(parseCoordinate("target", taskXML).headOption.getOrElse(None, None))
+    val flags = parseCoordinate("flag", taskXML)
 
-  val isCompleteExpression = extractParsedBooleanExpression("isComplete", taskXML)
-  val postMoveForwardExpression = extractParsedBooleanExpression("postMoveForward", taskXML)
-  val (sizeX, sizeY) = parseCoordinate("gridSize", taskXML).headOption.getOrElse(None, None)
-  val (startX, startY, startDir) = parseStartState(taskXML)
-  val obstructions = parseLine("obstruction", taskXML)
-  val painted = parseLine("paint", taskXML)
-  val target = extractTarget(parseCoordinate("target", taskXML).headOption.getOrElse(None, None))
-  val flags = parseCoordinate("flag", taskXML)
+    new Task(
+      (for (titleElem <- taskXML \ "title") yield (titleElem.text)).headOption.getOrElse("No Title"),
+      (for (descriptionElem <- taskXML \ "description") yield (descriptionElem.mkString)).headOption.getOrElse(""),
+      (for (scenarioElem <- taskXML \ "scenario")  yield {
+        val (scenarioSizeX, scenarioSizeY) = parseCoordinate("gridSize", scenarioElem).headOption.getOrElse(None, None)
+        val (scenarioStartX, scenarioStartY, scenarioStartDir) = parseStartState(scenarioElem)
+        val scenarioObstructions = parseLine("obstruction", scenarioElem)
+        val scenarioPainted = parseLine("paint", scenarioElem)
+        val scenarioTarget = extractTarget(parseCoordinate("target", scenarioElem).headOption.getOrElse(None, None))
+        val scenarioFlags = parseCoordinate("flag", scenarioElem)
+        val hidden = (for (hidden <- scenarioElem \ "hidden")
+          yield  (
+            ((hidden \ "@name").text,
+              (for (location <- hidden \ "location") yield (((location \ "@x").text.toInt, (location \ "@y").text.toInt))).toSet)
+          )
+        ).toMap
+    val scenarioIsCompleteExpression = extractParsedBooleanExpression("isComplete", scenarioElem)
+    val scenarioPostMoveForwardExpression = extractParsedBooleanExpression("postMoveForward", scenarioElem)
+        new Scenario {
+          override val description = (scenarioElem \ "@title").text
 
-  scenarios = (for (scenarioElem <- taskXML \ "scenario")
-    yield {
-      val (scenarioSizeX, scenarioSizeY) = parseCoordinate("gridSize", scenarioElem).headOption.getOrElse(None, None)
-      val (scenarioStartX, scenarioStartY, scenarioStartDir) = parseStartState(scenarioElem)
-      val scenarioObstructions = parseLine("obstruction", scenarioElem)
-      val scenarioPainted = parseLine("paint", scenarioElem)
-      val scenarioTarget = extractTarget(parseCoordinate("target", scenarioElem).headOption.getOrElse(None, None))
-      val scenarioFlags = parseCoordinate("flag", scenarioElem)
-      val hidden = (for (hidden <- scenarioElem \ "hidden")
-                      yield  (
-                        ((hidden \ "@name").text,
-                        (for (location <- hidden \ "location") yield (((location \ "@x").text.toInt, (location \ "@y").text.toInt))).toSet)
-                      )
-                    ).toMap
-      val scenarioIsCompleteExpression = extractParsedBooleanExpression("isComplete", scenarioElem)
-      val scenarioPostMoveForwardExpression = extractParsedBooleanExpression("postMoveForward", scenarioElem)
-
-      new Scenario {
-            override val description = (scenarioElem \ "@title").text
-
-            override def createController() =
-              new GUIViewController(45,
-                createState(
-                  getOrElse(scenarioStartX, startX, 2),
-                  getOrElse(scenarioStartY, startY, 2),
-                  getOrElse(scenarioStartDir, startDir, 0)
+          override def createController() =
+            new GUIViewController(45,
+              createState(
+                getOrElse(scenarioStartX, startX, 2),
+                getOrElse(scenarioStartY, startY, 2),
+                getOrElse(scenarioStartDir, startDir, 0)
               ),new GUIEnvironment(
-                  getOrElse(scenarioSizeX, sizeX, 10),
-                  getOrElse(scenarioSizeY, sizeY, 10),
-                  obstructions ++ scenarioObstructions,
-                  painted ++ scenarioPainted,
-                  if (scenarioTarget.isDefined) scenarioTarget else target,
-                  Map("FLAG" -> (for (coord <-  flags ++ scenarioFlags;
-                     x <- coord._1;
-                     y <- coord._2) yield (x,y)).toSet),
-                  hidden
+                getOrElse(scenarioSizeX, sizeX, 10),
+                getOrElse(scenarioSizeY, sizeY, 10),
+                obstructions ++ scenarioObstructions,
+                painted ++ scenarioPainted,
+                if (scenarioTarget.isDefined) scenarioTarget else target,
+                Map("FLAG" -> (for (coord <-  flags ++ scenarioFlags;
+                                    x <- coord._1;
+                                    y <- coord._2) yield (x,y)).toSet),
+                hidden
               ), if (scenarioPostMoveForwardExpression.isDefined) scenarioPostMoveForwardExpression else postMoveForwardExpression,
               DefaultConstraints
             )
 
-            override def isComplete(environment:GUIEnvironment, state:State) = {
-              val expression = if (scenarioIsCompleteExpression.isDefined) scenarioIsCompleteExpression else isCompleteExpression
-              if (expression.isDefined) {
-                evaluator.evaluateBoolean(expression.get, Array.empty[Int], new Controller(state, environment, constraints)).value.get
-              } else {
-                false
-              }
+          override def isComplete(environment:GUIEnvironment, state:State) = {
+            val expression = if (scenarioIsCompleteExpression.isDefined) scenarioIsCompleteExpression else isCompleteExpression
+            if (expression.isDefined) {
+              evaluator.evaluateBoolean(expression.get, Array.empty[Int], new Controller(state, environment, constraints)).value.get
+            } else {
+              false
             }
           }
-  }).toList
+        }
+      }).toList
+    )
+  }
 }
-
