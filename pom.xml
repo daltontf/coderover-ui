@@ -74,14 +74,10 @@
             <artifactId>codesyntaxpane</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
-        <!--dependency>
-            <groupId>tfd.scala.properties</groupId>
-            <artifactId>scala-properties</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency-->
+
         <dependency>
             <groupId>tfd.scala.events</groupId>
-            <artifactId>scala-events</artifactId>
+            <artifactId>scala-events_${scala.version}</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
@@ -99,8 +95,8 @@
         </dependency>
         <dependency>
             <groupId>tfd.fest</groupId>
-            <artifactId>fest-scala</artifactId>
-            <version>0.0.1-${scala.version}-SNAPSHOT</version>
+            <artifactId>fest-scala_${scala.version}</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>

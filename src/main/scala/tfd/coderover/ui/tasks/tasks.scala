@@ -35,7 +35,7 @@ class Task (
   override def toString() = title
 }
 
-abstract trait Scenario {
+trait Scenario {
   val description:String
 
   def createController():GUIViewController

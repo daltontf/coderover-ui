@@ -14,7 +14,7 @@ class GUIViewController(
         val startState:State,
         val environment:GUIEnvironment,
         val postMoveForwardExpression:Option[BooleanExpression],
-        constraints:Constraints) extends Controller(startState, environment, constraints)
+        constraints:Constraints) extends Controller(startState.copy(), environment, constraints)
 {
   state = startState
 
@@ -40,7 +40,7 @@ class GUIViewController(
 
   private val background = new PImage()
 
-  private val robot = new PImage(makePaintedImage(squareSize, squareSize, { g:Graphics =>
+  private val rover = new PImage(makePaintedImage(squareSize, squareSize, { g:Graphics =>
         	g.setColor(Color.RED)
         	val oneHalf = squareSize/2;
         	val oneFifth = squareSize/5;
@@ -52,7 +52,7 @@ class GUIViewController(
    
 
   private def executeAnimation(duration:Int) {
-		robot.animateToTransform(transform, duration ) 
+		rover.animateToTransform(transform, duration )
 		Thread.sleep(duration)
 	}
   
@@ -73,10 +73,6 @@ class GUIViewController(
     }
   })
 
-  private def drawBackground() {
-		background.setImage(buildBackground)
-  }
-
   private def renderPaint(color:Color, gridX:Int, gridY:Int) {
     val g = background.getImage.getGraphics
 		g.setColor(color)
@@ -93,11 +89,11 @@ class GUIViewController(
 		transform = new AffineTransform()
 		transform.translate(state.gridX * squareSize, state.gridY * squareSize)
 		transform.rotate(state.directionIndex * (java.lang.Math.PI/2), squareSize/2, squareSize/2)
-		robot.setTransform(transform)
+		rover.setTransform(transform)
 	}
 
   def syncEnvironment() {
-    drawBackground()
+    background.setImage(buildBackground())
     for (x <- 0 to environment.sizeX-1; y <- 0 to environment.sizeY-1) {
       if (environment.isPainted(x,y)) {
         renderPaint(Color.YELLOW, x, y)
@@ -141,7 +137,7 @@ class GUIViewController(
     resetState()
   }
 
-  def getView():java.awt.Component = canvas
+  def getView:java.awt.Component = canvas
 
   def repaint() {
     canvas.repaint()
@@ -158,7 +154,6 @@ class GUIViewController(
   }
 
   canvas.setPreferredSize(new Dimension(environment.sizeX * squareSize, environment.sizeY * squareSize)) 
-  drawBackground()
   canvas.getLayer.addChild(background)
   canvas.setPanEventHandler(null);
   syncEnvironment()
@@ -182,5 +177,5 @@ class GUIViewController(
     })), coordinates)
   }
 
-  background.addChild(robot)
+  background.addChild(rover)
 }

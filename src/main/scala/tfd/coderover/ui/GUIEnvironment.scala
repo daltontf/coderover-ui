@@ -11,8 +11,7 @@ class GUIEnvironment(
         val visibleEntities:Map[String, Set[(Int,Int)]],
         val hiddenEntities:Map[String, Set[(Int, Int)]]
   ) extends Environment(sizeX, sizeY) {
-  import Math._
-   
+
   protected var painted:Array[Array[Boolean]] = _
   
   override def paint(x:Int, y:Int) {
@@ -33,16 +32,11 @@ class GUIEnvironment(
          pair <- set.toIndexedSeq.lift(index)) yield (pair)
 
   override def distanceX(entity:String, index:Int, x:Int, y:Int):Option[Int] =
-    findEntity(entity, index) match {
-      case Some((thatX, _)) => Some(x - thatX)
-      case None => None
-  }
+    findEntity(entity, index) map (x - _._1)
+
 
   override def distanceY(entity:String, index:Int, x:Int, y:Int):Option[Int] =
-     findEntity(entity, index) match {
-      case Some((_, thatY)) => Some(y - thatY)
-      case None => None
-  }
+     findEntity(entity, index) map (y - _._2)
 
   override def adjacent(entity:String, x:Int, y:Int) = {
     val entityLocations = hiddenEntities.getOrElse(entity, Set.empty) ++ visibleEntities.getOrElse(entity, Set.empty)

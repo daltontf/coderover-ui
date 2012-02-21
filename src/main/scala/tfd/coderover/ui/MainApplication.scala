@@ -98,6 +98,7 @@ class MainApplication() {
     taskManager = Some(tm)
     runTaskAction.setEnabled(true)
     scenarioCombo.setEnabled(true)
+    displayHelpAction.setEnabled(true)
     updateTaskAndScenarios
   }
 
@@ -173,7 +174,7 @@ class MainApplication() {
             val writer = new BufferedWriter(new FileWriter(file))
             val text = codeText.getText
             writer.write(text, 0, text.length)
-            writer.close
+            writer.close()
         }
       }
     }
@@ -182,7 +183,7 @@ class MainApplication() {
   private lazy val runAction:AbstractAction = new AbstractAction("Run") {
 
     override def actionPerformed(ae:ActionEvent) {
-      new Thread(new RunWorker()).start
+      new Thread(new RunWorker()).start()
     }
   }
 
@@ -193,6 +194,12 @@ class MainApplication() {
       progressBar.setMaximum(taskManager.get.currentTask.scenarios.length)
       progressBar.setForeground(Color.GREEN)
       new Thread(new RunTaskWorker()).start
+    }
+  }
+
+  private lazy val displayHelpAction:AbstractAction = new AbstractAction("Help") {
+    override def actionPerformed(ae:ActionEvent) {
+      glassPane.setVisible(true);
     }
   }
 
@@ -357,7 +364,7 @@ class MainApplication() {
   frame.setJMenuBar(menuBar)
 
   private val progressBar = new JProgressBar
-  private val taskLabel = new JLabel()
+  private val taskLabel = new JLabel("<html><i>Not Loaded</i></html>")
   private val scenarioCombo = new JComboBox()
 
   def updateTaskAndScenarios() {
@@ -372,7 +379,7 @@ class MainApplication() {
           }
         }
       })
-      instructionLabel.setText("<html><center>" + tm.currentTask.description + "</center></html>")
+      instructionLabel.setText("<html><center><h2>" + tm.currentTask.title + "</h2><br/>&nbsp;</br>" + tm.currentTask.description + "</center></html>")
       glassPane.setVisible(true);
     }
   }
@@ -392,31 +399,30 @@ class MainApplication() {
       }
       btn
     }
-    val panel = new JPanel
-    panel.setOpaque(false)
-    panel.setLayout(new GridBagLayout())
+    setOpaque(false)
+    setLayout(new GridBagLayout())
     val gbc = new GridBagConstraints()
     import GridBagConstraints._
     gbc.anchor = NORTHWEST
     gbc.fill = BOTH
     gbc.weightx = 1.0
-    panel.add(progressBar, gbc)
+    add(progressBar, gbc)
     progressBar.setLayout(new BorderLayout())
     progressBar.add(new JLabel("Task : "), BorderLayout.WEST)
     progressBar.add(taskLabel)
     gbc.fill = VERTICAL
     gbc.weightx = 0.0
-    panel.add(createButtonForAction(runTaskAction, "go-go.png", "Run all scenarios"), gbc)
-    panel.add(scenarioCombo, gbc)
-    add(panel)
-    add(createButtonForAction(runAction, "go.png", "Run for current scenario"))
-    add(createButtonForAction(stopAction, "stop.png", "Stop running program"))
+    add(scenarioCombo, gbc)
+    add(createButtonForAction(displayHelpAction, "help.png", "Display task instructions"), gbc)
+    add(createButtonForAction(runTaskAction, "go-go.png", "Run all scenarios"), gbc)
+    add(createButtonForAction(runAction, "go.png", "Run for current scenario"), gbc)
+    add(createButtonForAction(stopAction, "stop.png", "Stop running program"), gbc)
   }
 
   private val gridPane = new JScrollPane()
 
-  def setTabs(textPane:JTextPane, charactersPerTab:Int) {
-		val tabWidth = textPane.getFontMetrics(textPane.getFont()).charWidth('w') * charactersPerTab
+  private def setTabs(textPane:JTextPane, charactersPerTab:Int) {
+		val tabWidth = textPane.getFontMetrics(textPane.getFont).charWidth('w') * charactersPerTab
 
 		val tabs = new Array[TabStop](10)
 
@@ -428,8 +434,8 @@ class MainApplication() {
 		val tabSet = new TabSet(tabs)
 		val attributes = new SimpleAttributeSet()
 		StyleConstants.setTabSet(attributes, tabSet)
-		val length = textPane.getDocument().getLength()
-		textPane.getStyledDocument().setParagraphAttributes(0, length, attributes, false)
+		val length = textPane.getDocument.getLength
+		textPane.getStyledDocument.setParagraphAttributes(0, length, attributes, false)
 	}
 
   val codeScrollPane = new JScrollPane(codeText)
@@ -460,6 +466,7 @@ class MainApplication() {
 
   runTaskAction.setEnabled(false)
   scenarioCombo.setEnabled(false)
+  displayHelpAction.setEnabled(false)
   viewController.printDelegate = printDelegate
   viewController.syncToStartState()
   gridPane.setViewportView(viewController.getView)
